@@ -13,6 +13,7 @@
 | `rosters` | Ученики класса (для аналитики учителя) |
 | `demo_users` | **Вход на сайт** — login, password, role, full_name, class_name, id |
 | `demo_exam_answers` | Примеры ответов для демо-аналитики |
+| `demo_question_times` | Секунды на каждый вопрос (`exam_id:student_id` → массив) |
 
 ## Добавить ученика для входа
 

@@ -1251,3 +1251,21 @@ li.student-row .student-row-meta {
 .student-result-card .btn-result-detail {
   margin-top: 4px;
 }
+
+.cell-errors-stack {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  line-height: 1.25;
+}
+
+.cell-errors-stack .cell-time-sub {
+  font-size: 0.78rem;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.data-table td.col-errors-stack {
+  vertical-align: middle;
+}
