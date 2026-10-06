@@ -141,25 +141,77 @@ function answersForStudent(bundle, examId, student, questions, submissions) {
   return picks;
 }
 
+function formatSecondsLabel(totalSec) {
+  const sec = Math.max(0, Math.round(Number(totalSec) || 0));
+  const minutes = Math.floor(sec / 60);
+  const seconds = sec % 60;
+  if (minutes) return `${minutes}:${String(seconds).padStart(2, "0")}`;
+  return `${seconds} с`;
+}
+
+function parseDurationLabelToSeconds(label) {
+  if (label == null || label === "") return null;
+  const raw = String(label).trim();
+  const clock = raw.match(/^(\d{1,2}):(\d{1,2})$/);
+  if (clock) return Number(clock[1]) * 60 + Number(clock[2]);
+  return null;
+}
+
+function demoQuestionTimes(bundle, examId, studentId) {
+  const key = `${examId}:${studentId}`;
+  const arr = bundle.demo_question_times?.[key];
+  return Array.isArray(arr) ? arr.map((n) => Number(n)) : null;
+}
+
+function questionTimesForStudent(bundle, examId, student, questions, submissions) {
+  const sub = getSubmission(submissions, examId, student.id);
+  if (sub?.question_times?.length) {
+    return sub.question_times.map((n) => Number(n));
+  }
+  const demo = demoQuestionTimes(bundle, examId, student.id);
+  if (demo?.length) return demo;
+  const totalSec = parseDurationLabelToSeconds(student.duration_label);
+  if (totalSec == null || !questions.length) return null;
+  const per = Math.max(30, Math.round(totalSec / questions.length));
+  return questions.map((_, qi) => per + (qi === questions.length - 1 ? Math.round(per * 0.25) : 0));
+}
+
 function buildAnalytics(bundle, examId, questions, students, submissions) {
   const submitted = students.filter((s) => s.status === "submitted");
   const submittedTotal = submitted.length;
   const stats = questions.map((q, qi) => {
     let failed = 0;
+    const times = [];
     if (submittedTotal) {
       for (const st of submitted) {
         const picks = answersForStudent(bundle, examId, st, questions, submissions);
         if (!picks || qi >= picks.length || picks[qi] !== q.correct_index) failed++;
+        const qt = questionTimesForStudent(bundle, examId, st, questions, submissions);
+        if (qt && qt[qi] != null && qt[qi] >= 0) times.push(qt[qi]);
       }
     }
     const failedPercent = submittedTotal ? Math.round((100 * failed) / submittedTotal) : 0;
-    return { submitted_total: submittedTotal, failed_count: failed, failed_percent: failedPercent };
+    const avgTimeSec = times.length
+      ? Math.round(times.reduce((a, b) => a + b, 0) / times.length)
+      : null;
+    return {
+      submitted_total: submittedTotal,
+      failed_count: failed,
+      failed_percent: failedPercent,
+      avg_time_seconds: avgTimeSec,
+      avg_time_label: avgTimeSec != null ? formatSecondsLabel(avgTimeSec) : null,
+      timed_count: times.length,
+    };
   });
   const problem = [];
   if (submittedTotal) {
     stats.forEach((st, index) => {
       if (st.failed_percent >= PROBLEM_THRESHOLD) {
-        problem.push({ index, failed_percent: st.failed_percent });
+        problem.push({
+          index,
+          failed_percent: st.failed_percent,
+          avg_time_label: st.avg_time_label,
+        });
       }
     });
     problem.sort((a, b) => b.failed_percent - a.failed_percent || a.index - b.index);
@@ -366,14 +418,21 @@ export async function dataApi(path, options = {}) {
     });
     const total = ex.questions.length || 1;
     const score = Math.round((100 * correct) / total);
+    const questionTimes = Array.isArray(body.question_times)
+      ? body.question_times.map((n) => Math.max(0, Math.round(Number(n) || 0)))
+      : [];
+    while (questionTimes.length < total) questionTimes.push(0);
+    const durationSec = questionTimes.reduce((a, b) => a + b, 0);
+    const durationLabel = durationSec > 0 ? formatSecondsLabel(durationSec) : "10:42";
     const map = loadSubmissions();
     map[submissionKey(examId, user.id)] = {
       score_percent: score,
       correct_count: correct,
       question_total: total,
       answers,
+      question_times: questionTimes.slice(0, total),
       exit_intent_count: Number(body.exit_intent_count || 0),
-      duration_label: "10:42",
+      duration_label: durationLabel,
       feedback,
     };
     saveSubmissions(map);
@@ -381,7 +440,7 @@ export async function dataApi(path, options = {}) {
       score_percent: score,
       correct_count: correct,
       question_total: total,
-      duration_label: "10:42",
+      duration_label: durationLabel,
     };
   }
 

@@ -23,6 +23,7 @@ const portalState = {
   examTitle: null,
   examAnswers: {},
   examRunStep: {},
+  examQuestionTimes: {},
   examTimerId: null,
   highlightResultExamId: null,
   examExitIntents: {},
@@ -1211,20 +1212,41 @@ function clearExamDeadline(examId) {
   sessionStorage.removeItem(`portal_exam_deadline_${examId}`);
 }
 
+function ensureExamQuestionTiming(examId, questionCount) {
+  if (!portalState.examQuestionTimes[examId]) {
+    portalState.examQuestionTimes[examId] = {
+      stepStartedAt: Date.now(),
+      seconds: Array.from({ length: questionCount }, () => 0),
+    };
+  }
+  return portalState.examQuestionTimes[examId];
+}
+
+function recordQuestionStepTime(examId, stepIndex, questionCount) {
+  const timing = portalState.examQuestionTimes[examId];
+  if (!timing || stepIndex < 0 || stepIndex >= questionCount) return;
+  const spent = Math.max(1, Math.round((Date.now() - timing.stepStartedAt) / 1000));
+  timing.seconds[stepIndex] = (timing.seconds[stepIndex] || 0) + spent;
+  timing.stepStartedAt = Date.now();
+}
+
 async function submitStudentExam(examId, questionCount) {
   const answers = { ...(portalState.examAnswers[examId] || {}) };
   for (let i = 0; i < questionCount; i++) {
     if (answers[String(i)] === undefined) answers[String(i)] = 0;
   }
   const exitCount = getExamExitIntentCount(examId);
+  const timing = portalState.examQuestionTimes[examId];
+  const questionTimes = timing?.seconds?.slice(0, questionCount) || [];
   const result = await api(`/api/portal/exams/${examId}/submit`, {
     method: "POST",
-    body: JSON.stringify({ answers, exit_intent_count: exitCount }),
+    body: JSON.stringify({ answers, exit_intent_count: exitCount, question_times: questionTimes }),
   });
   stopExamTimer();
   clearExamDeadline(examId);
   delete portalState.examAnswers[examId];
   delete portalState.examRunStep[examId];
+  delete portalState.examQuestionTimes[examId];
   if (portalState.examExitIntents) delete portalState.examExitIntents[examId];
   try {
     sessionStorage.removeItem(`portal_exam_exit_${examId}`);
@@ -1417,6 +1439,7 @@ function mountStudentTestRunner(container, preview, examId) {
     return;
   }
   if (!portalState.examAnswers[examId]) portalState.examAnswers[examId] = {};
+  ensureExamQuestionTiming(examId, qCount);
 
   let step =
     portalState.examRunStep[examId] ??
@@ -1456,9 +1479,11 @@ function mountStudentTestRunner(container, preview, examId) {
       if (pendingOpt == null) return;
       portalState.examAnswers[examId][String(step)] = pendingOpt;
       if (step >= qCount - 1) {
+        recordQuestionStepTime(examId, step, qCount);
         await finishSubmit();
         return;
       }
+      recordQuestionStepTime(examId, step, qCount);
       step += 1;
       portalState.examRunStep[examId] = step;
       pendingOpt = null;
@@ -1915,8 +1940,14 @@ async function renderAdminExamDetail(main) {
           },
           {
             label: "Ошибок",
-            cellClass: "num",
-            render: (pq) => `<strong>${pq.failed_percent}%</strong>`,
+            cellClass: "num col-errors-stack",
+            render: (pq) => {
+              const timeLabel = pq.avg_time_label || data.question_stats[pq.index]?.avg_time_label;
+              const timeHtml = timeLabel
+                ? `<span class="cell-time-sub muted">ср. ${escapeHtml(timeLabel)}</span>`
+                : "";
+              return `<div class="cell-errors-stack"><strong>${pq.failed_percent}%</strong>${timeHtml}</div>`;
+            },
           },
         ],
         rows: data.problem_questions,
@@ -1943,10 +1974,14 @@ async function renderAdminExamDetail(main) {
           },
           {
             label: "Ошибок",
-            cellClass: "num",
+            cellClass: "num col-errors-stack",
             render: (q, idx) => {
               const st = data.question_stats[idx];
-              return st && st.submitted_total ? `${st.failed_percent}%` : "—";
+              if (!st || !st.submitted_total) return "—";
+              const timeHtml = st.avg_time_label
+                ? `<span class="cell-time-sub muted">ср. ${escapeHtml(st.avg_time_label)}</span>`
+                : "";
+              return `<div class="cell-errors-stack"><strong>${st.failed_percent}%</strong>${timeHtml}</div>`;
             },
           },
         ],
