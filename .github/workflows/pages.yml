@@ -22,11 +22,6 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
-      - name: Ensure demo config (JSON-only, no Google Sheet)
-        run: |
-          cat > static/js/portal-config.js <<'EOF'
-          window.PORTAL_API_URL = "";
-          EOF
       - uses: actions/configure-pages@v5
       - name: Prepare static site folder
         run: |

@@ -498,89 +498,16 @@ async function loadStudentCompletedTests(fromSubjectsPayload) {
   }
 }
 
-const PORTAL_GAS_TOKEN_KEY = "portal_gs_token";
-
-function getPortalApiUrl() {
-  const url = String(window.PORTAL_API_URL || window.PORTAL_AUTH_URL || "").trim();
-  return url || null;
-}
-
 function useSiteData() {
-  if (apiUsesGas()) return false;
-  return Boolean(
-    getPortalApiUrl() || location.hostname.endsWith("github.io") || window.PORTAL_USE_STATIC_DATA
-  );
-}
-
-function apiUsesGas() {
-  return Boolean(window.PORTAL_USE_GAS && typeof google !== "undefined" && google.script && google.script.run);
-}
-
-function apiUsesRemote() {
-  return Boolean(getPortalApiUrl() && !apiUsesGas());
-}
-
-async function apiRemote(path, options = {}) {
-  const base = getPortalApiUrl();
-  if (!base) {
-    throw new Error("portal_api_url_missing");
-  }
-  const envelope = {
-    path,
-    method: String(options.method || "GET").toUpperCase(),
-    token: localStorage.getItem(PORTAL_GAS_TOKEN_KEY) || "",
-    body: options.body == null ? "" : String(options.body),
-  };
-  const res = await fetch(base, {
-    method: "POST",
-    headers: { "Content-Type": "text/plain;charset=utf-8" },
-    body: JSON.stringify(envelope),
-    redirect: "follow",
-  });
-  const text = await res.text();
-  let parsed = null;
-  try {
-    parsed = text ? JSON.parse(text) : null;
-  } catch {
-    parsed = null;
-  }
-  if (!parsed || parsed.ok !== true) {
-    const detail = parsed?.detail || (res.ok ? "request_failed" : res.statusText);
-    throw new Error(typeof detail === "string" ? detail : "request_failed");
-  }
-  return parsed.data;
-}
-
-function apiGas(path, options = {}) {
-  const method = String(options.method || "GET").toUpperCase();
-  const body = options.body == null ? "" : String(options.body);
-  const token = localStorage.getItem(PORTAL_GAS_TOKEN_KEY) || "";
-  return new Promise((resolve, reject) => {
-    google.script.run
-      .withSuccessHandler(resolve)
-      .withFailureHandler((err) => {
-        const msg = err && err.message ? err.message : String(err || "request_failed");
-        reject(new Error(msg));
-      })
-      .apiRoute(token, path, method, body);
-  });
+  return Boolean(location.hostname.endsWith("github.io") || window.PORTAL_USE_STATIC_DATA);
 }
 
 async function api(path, options = {}) {
-  if (apiUsesGas()) {
-    return apiGas(path, options);
-  }
   if (useSiteData()) {
     if (AUTH_API_PATHS.has(path)) {
-      if (!getPortalApiUrl()) {
-        return demoAuthApi(path, options);
-      }
-      return apiRemote(path, options);
+      return demoAuthApi(path, options);
     }
     return dataApi(path, options);
-  }
-  if (apiUsesRemote()) {
-    return apiRemote(path, options);
   }
   const res = await fetch(path, {
     credentials: "same-origin",
@@ -2302,7 +2229,7 @@ async function loadLanding() {
     }
   } catch {
     $("landing-sub").textContent =
-      "Не удалось загрузить data/portal.json или API входа — проверьте GitHub Pages и portal-config.js";
+      "Не удалось загрузить data/portal.json — проверьте GitHub Pages и файл data/portal.json";
   }
 }
 
@@ -2335,33 +2262,21 @@ $("auth-form").addEventListener("submit", async (e) => {
   const btn = $("btn-submit");
   btn.disabled = true;
   try {
-    const raw = await api("/api/login", {
-      method: "POST",
-      body: JSON.stringify({
-        login: $("input-login").value.trim(),
-        password: $("input-password").value,
-      }),
-    });
-    if (raw.token) {
-      localStorage.setItem(PORTAL_GAS_TOKEN_KEY, raw.token);
-    }
-    let session = raw.token ? { user: raw.user, school_name: raw.school_name } : raw;
-    if (!session.school_name && useSiteData()) {
-      try {
-        const land = await dataApi("/api/public/landing");
-        session.school_name = land.school_name;
-      } catch {
-        session.school_name = session.school_name || "Школа";
-      }
-    }
+    const session = await enrichSessionSchoolName(
+      await api("/api/login", {
+        method: "POST",
+        body: JSON.stringify({
+          login: $("input-login").value.trim(),
+          password: $("input-password").value,
+        }),
+      })
+    );
     await renderDashboard(session);
   } catch (err) {
     const msg =
       err.message === "invalid_credentials"
         ? "Неверный логин или пароль"
-        : err.message === "portal_auth_url_missing"
-          ? "Настройте PORTAL_API_URL (вход через Google Таблицу)"
-          : "Ошибка входа. Попробуйте снова.";
+        : "Ошибка входа. Попробуйте снова.";
     setAuthError(msg);
   } finally {
     btn.disabled = false;
@@ -2375,7 +2290,6 @@ $("btn-logout").addEventListener("click", async () => {
   } catch {
     /* ignore */
   }
-  localStorage.removeItem(PORTAL_GAS_TOKEN_KEY);
   portalState.session = null;
   showAuth();
   $("input-password").value = "";
