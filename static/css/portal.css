@@ -1333,23 +1333,55 @@ li.student-row .student-row-meta {
   line-height: 1.35;
 }
 
+.problem-table-wrap {
+  margin-top: 4px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--card) 50%, transparent);
+}
+
+.problem-table-wrap .student-table-scroll {
+  margin-top: 0;
+}
+
 .data-table.table-problems {
   table-layout: fixed;
   min-width: 0;
   width: 100%;
   font-size: 0.84rem;
+  border-collapse: separate;
+  border-spacing: 0;
 }
 
 .data-table.table-problems th,
 .data-table.table-problems td {
-  border-right: 1px solid var(--border);
   padding: 8px 6px;
   vertical-align: middle;
 }
 
-.data-table.table-problems th:last-child,
-.data-table.table-problems td:last-child {
-  border-right: none;
+.data-table.table-problems th:not(:last-child),
+.data-table.table-problems td:not(:last-child) {
+  border-right: 1px solid color-mix(in srgb, var(--muted) 32%, var(--border));
+}
+
+.data-table.table-problems thead th {
+  text-align: center;
+  background: color-mix(in srgb, var(--stat-bg) 85%, var(--card));
+  border-bottom: 1px solid var(--border);
+  box-shadow: none;
+}
+
+.data-table.table-problems thead th:nth-child(2) {
+  text-align: left;
+}
+
+.data-table.table-problems tbody td {
+  border-bottom: 1px solid var(--border);
+}
+
+.data-table.table-problems tbody tr:last-child td {
+  border-bottom: none;
 }
 
 .data-table.table-problems th:nth-child(1),
@@ -1387,6 +1419,8 @@ li.student-row .student-row-meta {
 
 .data-table.table-problems td.num {
   text-align: center;
+  width: auto;
+  white-space: nowrap;
 }
 
 .cell-exit-col {
