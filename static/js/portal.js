@@ -792,7 +792,10 @@ const STUDENT_TABLE_COLUMNS = [
     cellClass: "col-submission",
     render: (st) => {
       if (st.status !== "submitted") {
-        return `<span class="muted">${escapeHtml(studentStatusLabel(st.status))}</span>`;
+        return `<span class="muted">${escapeHtml(studentStatusLabel(st))}</span>`;
+      }
+      if (st.results_pending) {
+        return `<span class="tag tag-warn">сдан</span>`;
       }
       const line = studentTableSubmissionLine(st);
       return `<strong class="cell-submission">${escapeHtml(line)}</strong>`;
@@ -898,7 +901,8 @@ function studentSubmissionLine(st) {
 
 /** Таблица учеников: отдельные колонки «Время» и «Выход» — здесь только результат. */
 function studentTableSubmissionLine(st) {
-  if (st.status !== "submitted") return studentStatusLabel(st.status);
+  if (st.status !== "submitted") return studentStatusLabel(st);
+  if (st.results_pending) return "Сдан";
   if (st.score_line && /^\d+%/.test(String(st.score_line))) {
     return String(st.score_line).split(" · ")[0];
   }
@@ -1471,11 +1475,17 @@ function bindStudentResultCards(main) {
   });
 }
 
-function isStudentExamSubmitted(preview) {
+function isStudentExamTurnedIn(preview) {
   if (!preview) return false;
-  if (preview.submitted) return true;
-  if (preview.exam?.submitted) return true;
+  return Boolean(preview.submitted || preview.exam?.submitted);
+}
+
+function isStudentExamResultsVisible(preview) {
+  if (!preview) return false;
+  if (preview.results_released === true) return true;
+  if (preview.awaiting_release) return false;
   if (Array.isArray(preview.feedback) && preview.feedback.length > 0) return true;
+  if (preview.exam?.catalog_key === "done" && isStudentExamTurnedIn(preview)) return true;
   return false;
 }
 
@@ -1493,8 +1503,9 @@ function scrollToHighlightedResult(main) {
 
 function renderTeacherReportPanel(data, examId) {
   if (!data.all_submitted) {
-    return `<div class="panel panel-muted-inline">
-      <p class="muted">Сводка учителю: сдано <strong>${data.submitted_count ?? 0}</strong> из <strong>${data.class_total ?? 0}</strong>. Отправим одним разом, когда все сдадут.</p>
+    return `<div class="panel panel-muted-inline panel-class-progress">
+      <h3>Прогресс класса</h3>
+      <p class="lead muted">Сдано <strong>${data.submitted_count ?? 0}</strong> из <strong>${data.class_total ?? 0}</strong>. Оценки и аналитика откроются у всех сразу, когда сдадут последние ученики.</p>
     </div>`;
   }
   if (data.teacher_report_sent) {
@@ -1672,7 +1683,25 @@ function mountStudentTestRunner(container, preview, examId) {
   portalState.examTimerId = window.setInterval(tickTimer, 250);
 }
 
-function studentStatusLabel(status) {
+function renderStudentAwaitingClassPanel(ex, preview) {
+  const n = preview.submitted_count ?? 0;
+  const total = preview.class_total ?? 0;
+  return `<div class="panel panel-wait panel-await-class">
+    <div class="wait-box">
+      <p class="wait-title">Тест сдан</p>
+      <p class="muted">Ваши ответы сохранены. Результат и разбор откроются, когда сдадут все ученики класса (<strong>${n}</strong> из <strong>${total}</strong>).</p>
+      <p class="muted wait-note">Пока можно вернуться к списку тестов — статус: «Сдано · ждём класс».</p>
+    </div>
+  </div>`;
+}
+
+function studentStatusLabel(statusOrStudent) {
+  const st =
+    typeof statusOrStudent === "object" && statusOrStudent !== null
+      ? statusOrStudent
+      : { status: statusOrStudent };
+  const status = st.status;
+  if (status === "submitted" && st.results_pending) return "Ждём класс";
   if (status === "submitted") return "Сдал";
   if (status === "in_progress") return "Пишет";
   return "Не начинал";
@@ -2138,6 +2167,14 @@ async function renderAdminExamDetail(main) {
       ${renderMetricColumns(analyticsCols)}
     </section>`;
 
+  const resultsReleased = data.all_submitted;
+  const analyticsHoldPanel = `<section class="panel panel-muted-inline panel-block panel-results-locked">
+      <p class="muted">Детальная аналитика (время, сложные вопросы, проценты) появится здесь, когда сдадут все <strong>${data.class_total ?? 0}</strong> учеников. Сейчас сдано <strong>${data.submitted_count ?? 0}</strong>.</p>
+    </section>`;
+  const examAnalyticsStack = resultsReleased
+    ? `${summaryPanel}${timingPanel}${problemPanel}${studentsPanel}${questionsPanel}`
+    : `${studentsPanel}${analyticsHoldPanel}`;
+
   const studentPreviewPanel = SHOW_STUDENT_PREVIEW_PANEL
     ? renderCollapsiblePanel({
         title: "Тест: как видит ученик",
@@ -2164,11 +2201,7 @@ async function renderAdminExamDetail(main) {
     ${sessionPanel}
     ${studentPreviewPanel}
     <div class="exam-blocks-stack">
-      ${summaryPanel}
-      ${timingPanel}
-      ${problemPanel}
-      ${studentsPanel}
-      ${questionsPanel}
+      ${examAnalyticsStack}
     </div>
   `;
   bindCollapsiblePanels(main);
@@ -2188,17 +2221,36 @@ async function renderStudentExamPreview(main) {
   portalState.openExamAsReview = false;
   const preview = await fetchExamPreview(examId);
   const ex = preview.exam;
-  const submitted = isStudentExamSubmitted(preview) || reviewOnly;
-  if (submitted) clearStudentExamRunLocalState(examId);
+  const turnedIn = isStudentExamTurnedIn(preview);
+  const showResults = isStudentExamResultsVisible(preview) || reviewOnly;
+  if (turnedIn || showResults) clearStudentExamRunLocalState(examId);
   portalState.examTitle = ex.title;
   portalState.subjectTitle = ex.subject_title || portalState.subjectTitle;
   updateBreadcrumbs();
   const userId = portalState.session?.user?.id;
   const todoNotStarted =
-    !submitted &&
+    !turnedIn &&
     !PORTAL_SKIP_TEACHER_START &&
     ex.catalog_key === "todo" &&
     !getExamSession(examId).started;
+
+  if (preview.awaiting_release && !reviewOnly) {
+    main.innerHTML = `
+      <button type="button" class="btn-ghost btn-back" id="btn-student-exam-back">${studentExamBackLabel()}</button>
+      <div class="panel panel-exam-head">
+        <h3 class="class-detail-title">${escapeHtml(ex.title)}</h3>
+        ${renderMetricColumns([
+          { label: "Дата", value: ex.control_date || "—" },
+          { label: "Вопросов", value: String(questionCountLabel(ex)) },
+          { label: "Статус", value: "Сдан · ждём класс" },
+          { label: "Класс", value: `${preview.submitted_count ?? 0} / ${preview.class_total ?? 0} сдали` },
+        ])}
+      </div>
+      ${renderStudentAwaitingClassPanel(ex, preview)}
+    `;
+    $("btn-student-exam-back").addEventListener("click", () => navigateBackFromStudentExam(ex));
+    return;
+  }
 
   if (todoNotStarted && userId != null) {
     main.innerHTML = `
@@ -2210,7 +2262,7 @@ async function renderStudentExamPreview(main) {
     return;
   }
 
-  const interactive = !submitted && ex.catalog_key === "todo";
+  const interactive = !turnedIn && ex.catalog_key === "todo";
 
   if (interactive) {
     setTestTakingActive(true, examId);
@@ -2221,15 +2273,15 @@ async function renderStudentExamPreview(main) {
   }
 
   setTestTakingActive(false);
-  const reviewPreview = submitted ? { ...preview, submitted: true } : preview;
+  const reviewPreview = showResults ? { ...preview, submitted: true, results_released: true } : preview;
   const headerCols = studentExamHeaderMetrics(ex, reviewPreview);
   const testInner = renderDemoTestPanel(reviewPreview, {
     interactive: false,
     title: "Тест",
     innerOnly: true,
   });
-  const summary = submitted ? studentFeedbackSummary(reviewPreview) : null;
-  const answersBody = submitted
+  const summary = showResults ? studentFeedbackSummary(reviewPreview) : null;
+  const answersBody = showResults
     ? renderStudentFeedbackTable(reviewPreview)
     : `<p class="muted">Ответы появятся после сдачи теста.</p>`;
 
@@ -2240,13 +2292,13 @@ async function renderStudentExamPreview(main) {
       ${renderMetricColumns(headerCols)}
     </div>
     ${renderCollapsiblePanel({
-      title: submitted ? "Тест: ваши ответы на экране" : "Тест",
+      title: showResults ? "Тест: ваши ответы на экране" : "Тест",
       hint: `${questionCountLabel(ex)} вопросов — нажмите, чтобы развернуть`,
-      open: submitted,
+      open: showResults,
       bodyHtml: testInner,
     })}
     ${
-      submitted
+      showResults
         ? renderCollapsiblePanel({
             title: "Мои ответы",
             hintHtml: renderMetricColumns([
@@ -2366,7 +2418,7 @@ async function renderStudentFlow() {
     const rows = data.tests.length
       ? data.tests
           .map(
-            (t) => `<li class="row-link" role="button" tabindex="0" data-exam-id="${t.id}" data-exam-submitted="${t.submitted ? "1" : "0"}">
+            (t) => `<li class="row-link" role="button" tabindex="0" data-exam-id="${t.id}" data-exam-submitted="${t.results_released ? "1" : "0"}">
         <span class="row-link-main">${escapeHtml(t.title)}</span>
         <span class="muted">${escapeHtml(t.student_label || testListMeta(t))}</span>
       </li>`

@@ -99,18 +99,50 @@ function staffTestsList(bundle) {
   }));
 }
 
-function rosterForClass(bundle, className, examId, submissions) {
-  const base = bundle.rosters[className] || [];
+function classRoster(bundle, className) {
+  return bundle.rosters[className] || [];
+}
+
+function examClassProgress(bundle, examId, submissions) {
+  const ex = examById(bundle, examId);
+  if (!ex) return { classTotal: 0, submittedCount: 0, allSubmitted: true };
+  const roster = classRoster(bundle, ex.class_name);
+  const classTotal = roster.length;
+  let submittedCount = 0;
+  for (const row of roster) {
+    if (getSubmission(submissions, examId, row.id)) submittedCount++;
+  }
+  const allSubmitted = classTotal === 0 || submittedCount >= classTotal;
+  return { classTotal, submittedCount, allSubmitted };
+}
+
+function examResultsReleased(bundle, examId, submissions) {
+  const ex = examById(bundle, examId);
+  if (!ex) return true;
+  if (ex.catalog_key === "done") return true;
+  return examClassProgress(bundle, examId, submissions).allSubmitted;
+}
+
+function rosterForClass(bundle, className, examId, submissions, { releaseResults = true } = {}) {
+  const base = classRoster(bundle, className);
   return base.map((row) => {
     const sub = getSubmission(submissions, examId, row.id);
     const out = { ...row };
     if (sub) {
       out.status = "submitted";
-      out.score_percent = sub.score_percent;
-      out.duration_label = sub.duration_label || out.duration_label;
-      out.exit_intent_count = sub.exit_intent_count || 0;
-      if (out.exit_intent_count > 0) {
-        out.exit_intent_label = `${out.exit_intent_count} раз`;
+      out.results_pending = !releaseResults;
+      if (releaseResults) {
+        out.score_percent = sub.score_percent;
+        out.duration_label = sub.duration_label || out.duration_label;
+        out.exit_intent_count = sub.exit_intent_count || 0;
+        if (out.exit_intent_count > 0) {
+          out.exit_intent_label = `${out.exit_intent_count} раз`;
+        }
+      } else {
+        out.score_percent = null;
+        out.duration_label = null;
+        out.exit_intent_count = 0;
+        out.exit_intent_label = null;
       }
     }
     return out;
@@ -367,6 +399,7 @@ export async function dataApi(path, options = {}) {
       const examId = Number(key.split(":")[0]);
       const ex = examById(bundle, examId);
       if (!ex) continue;
+      if (!examResultsReleased(bundle, examId, submissions)) continue;
       tests.push({
         exam_id: examId,
         title: ex.title,
@@ -399,8 +432,12 @@ export async function dataApi(path, options = {}) {
     if (user.role === "student") {
       for (const t of tests) {
         const sub = getSubmission(submissions, t.id, user.id);
+        const released = examResultsReleased(bundle, t.id, submissions);
         t.submitted = sub !== null || t.catalog_key === "done";
-        t.student_label = t.submitted ? "Сдано" : "К сдаче";
+        t.results_released = released;
+        if (!t.submitted) t.student_label = "К сдаче";
+        else if (released) t.student_label = "Сдано";
+        else t.student_label = "Сдано · ждём класс";
       }
     }
     return { subject_title: subject.title, tests };
@@ -412,18 +449,32 @@ export async function dataApi(path, options = {}) {
     const examId = Number(m[1]);
     const ex = examById(bundle, examId);
     if (!ex) throw new Error("exam_not_found");
-    const students = rosterForClass(bundle, ex.class_name, examId, submissions);
+    const progress = examClassProgress(bundle, examId, submissions);
+    const resultsReleased = examResultsReleased(bundle, examId, submissions);
+    const students = rosterForClass(bundle, ex.class_name, examId, submissions, {
+      releaseResults: resultsReleased,
+    });
     const submitted = students.filter((s) => s.status === "submitted");
-    const { stats, problem } = buildAnalytics(bundle, examId, ex.questions, students, submissions);
+    const emptyStats = ex.questions.map(() => ({
+      submitted_total: 0,
+      failed_count: 0,
+      failed_percent: 0,
+      avg_time_label: null,
+      question_exit_label: null,
+    }));
+    const analytics = resultsReleased
+      ? buildAnalytics(bundle, examId, ex.questions, students, submissions)
+      : { stats: emptyStats, problem: [] };
     return {
       exam: stripQuestions(ex),
       questions: ex.questions,
       students,
-      problem_questions: problem,
-      question_stats: stats,
-      submitted_count: submitted.length,
-      class_total: students.length || 24,
-      all_submitted: submitted.length >= (students.length || 1),
+      problem_questions: analytics.problem,
+      question_stats: analytics.stats,
+      submitted_count: progress.submittedCount,
+      class_total: progress.classTotal || students.length || 24,
+      all_submitted: progress.allSubmitted,
+      results_released: resultsReleased,
       teacher_report_sent: teacherReports.has(examId),
     };
   }
@@ -444,15 +495,31 @@ export async function dataApi(path, options = {}) {
       };
     }
     const sub = getSubmission(submissions, examId, user.id);
-    const submitted = sub !== null || ex.catalog_key === "done";
-    const score = sub ? sub.score_percent : ex.catalog_key === "done" ? 88 : null;
+    const progress = examClassProgress(bundle, examId, submissions);
+    const resultsReleased = examResultsReleased(bundle, examId, submissions);
+    const turnedIn = sub !== null || ex.catalog_key === "done";
+    const showResults = resultsReleased && turnedIn;
+    const score = showResults
+      ? sub
+        ? sub.score_percent
+        : ex.catalog_key === "done"
+          ? 88
+          : null
+      : null;
     return {
       exam: stripQuestions(ex),
       questions: ex.questions,
       show_answers: false,
-      submitted,
+      submitted: turnedIn,
+      results_released: showResults,
+      awaiting_release: turnedIn && !showResults,
+      submitted_count: progress.submittedCount,
+      class_total: progress.classTotal,
       score_percent: score,
-      feedback: sub?.feedback || null,
+      duration_label: showResults ? sub?.duration_label || null : null,
+      exit_intent_count: showResults ? sub?.exit_intent_count || 0 : 0,
+      exit_intent_label: showResults ? sub?.exit_intent_label || null : null,
+      feedback: showResults ? sub?.feedback || null : null,
     };
   }
 
@@ -501,11 +568,18 @@ export async function dataApi(path, options = {}) {
       feedback,
     };
     saveSubmissions(map);
+    const progress = examClassProgress(bundle, examId, map);
+    const resultsReleased = examResultsReleased(bundle, examId, map);
     return {
-      score_percent: score,
-      correct_count: correct,
+      submitted: true,
+      results_released: resultsReleased,
+      awaiting_release: !resultsReleased,
+      submitted_count: progress.submittedCount,
+      class_total: progress.classTotal,
+      score_percent: resultsReleased ? score : null,
+      correct_count: resultsReleased ? correct : null,
       question_total: total,
-      duration_label: durationLabel,
+      duration_label: resultsReleased ? durationLabel : null,
     };
   }
 
