@@ -607,23 +607,48 @@ function formatDurationLabel(totalSec) {
   const sec = Math.max(0, Math.round(Number(totalSec) || 0));
   const minutes = Math.floor(sec / 60);
   const seconds = sec % 60;
-  if (minutes && seconds) return `${minutes} мин ${seconds} с`;
+  if (minutes && seconds) return `${minutes}:${String(seconds).padStart(2, "0")}`;
   if (minutes) return `${minutes} мин`;
   return `${seconds} с`;
+}
+
+function parseDurationLabelToSeconds(label) {
+  if (label == null || label === "") return null;
+  const raw = String(label).trim();
+  const clock = raw.match(/^(\d{1,2}):(\d{1,2})$/);
+  if (clock) {
+    return Number(clock[1]) * 60 + Number(clock[2]);
+  }
+  const minSec = raw.match(/(\d+)\s*мин(?:\s*(\d+)\s*с)?/i);
+  if (minSec) {
+    return Number(minSec[1]) * 60 + (minSec[2] ? Number(minSec[2]) : 0);
+  }
+  const onlySec = raw.match(/^(\d+)\s*с$/i);
+  if (onlySec) return Number(onlySec[1]);
+  return null;
+}
+
+function studentDurationSeconds(student) {
+  if (Number.isFinite(student.duration_seconds) && student.duration_seconds >= 0) {
+    return student.duration_seconds;
+  }
+  return parseDurationLabelToSeconds(student.duration_label);
 }
 
 function analyticsTimingSummary(ex, students) {
   const submitted = students.filter((s) => s.status === "submitted");
   const submittedCount = submitted.length;
+  const durations = submitted
+    .map((s) => studentDurationSeconds(s))
+    .filter((d) => d != null && d >= 0);
   let avgLabel = ex?.avg_duration_label || null;
-  if (!avgLabel && submittedCount) {
-    const durations = submitted
-      .map((s) => s.duration_seconds)
-      .filter((d) => Number.isFinite(d) && d >= 0);
-    if (durations.length) {
-      const avg = Math.round(durations.reduce((a, b) => a + b, 0) / durations.length);
-      avgLabel = formatDurationLabel(avg);
-    }
+  let minLabel = null;
+  let maxLabel = null;
+  if (durations.length) {
+    const avg = Math.round(durations.reduce((a, b) => a + b, 0) / durations.length);
+    avgLabel = avgLabel || formatDurationLabel(avg);
+    minLabel = formatDurationLabel(Math.min(...durations));
+    maxLabel = formatDurationLabel(Math.max(...durations));
   }
   let exitLabel = ex?.exit_intent_summary_label || null;
   const withExit = submitted.filter((s) => Number(s.exit_intent_count) > 0);
@@ -632,7 +657,15 @@ function analyticsTimingSummary(ex, students) {
     else if (withExit.length === 1) exitLabel = "выход: 1 ученик";
     else exitLabel = `выход: ${withExit.length} из ${submittedCount} учеников`;
   }
-  return { submittedCount, avgLabel, exitLabel, withExit };
+  return {
+    submittedCount,
+    timedCount: durations.length,
+    avgLabel,
+    minLabel,
+    maxLabel,
+    exitLabel,
+    withExit,
+  };
 }
 
 function renderMetricColumns(items) {
@@ -669,6 +702,7 @@ function examSummaryMetrics(ex, students) {
       { label: "Учеников", value: String(students.length) },
       { label: "Сдали", value: String(timing.submittedCount) },
       { label: "Ср. время", value: timing.avgLabel || "—" },
+      { label: "Диапазон", value: timing.minLabel && timing.maxLabel ? `${timing.minLabel} – ${timing.maxLabel}` : "—" },
       { label: "Выходили", value: exitShort },
     ],
     headerColumns: [
@@ -698,6 +732,15 @@ const STUDENT_TABLE_COLUMNS = [
       }
       const line = st.score_line || studentSubmissionLine(st);
       return `<strong class="cell-submission">${escapeHtml(line)}</strong>`;
+    },
+  },
+  {
+    label: "Время",
+    cellClass: "num",
+    render: (st) => {
+      if (st.status !== "submitted") return "—";
+      const sec = studentDurationSeconds(st);
+      return sec != null ? escapeHtml(formatDurationLabel(sec)) : escapeHtml(st.duration_label || "—");
     },
   },
   {
@@ -1834,7 +1877,21 @@ async function renderAdminExamDetail(main) {
   updateBreadcrumbs();
 
   const summary = examSummaryMetrics(ex, data.students);
-  const { columns: analyticsCols, headerColumns } = summary;
+  const { columns: analyticsCols, headerColumns, timing } = summary;
+
+  const timingPanel = `<section class="panel panel-block panel-timing-stats" aria-labelledby="exam-timing-title">
+      <h3 id="exam-timing-title">Время прохождения</h3>
+      <p class="lead muted">Среднее по ученикам, которые сдали тест (из ${timing.submittedCount} сдавших)</p>
+      ${renderMetricColumns([
+        { label: "Среднее", value: timing.avgLabel || "—" },
+        { label: "Быстрее всех", value: timing.minLabel || "—" },
+        { label: "Дольше всех", value: timing.maxLabel || "—" },
+        {
+          label: "Лимит теста",
+          value: `${ex.duration_minutes || 13} мин`,
+        },
+      ])}
+    </section>`;
 
   const studentsTable = data.students.length
     ? renderStudentResultsTable(data.students)
@@ -1933,6 +1990,7 @@ async function renderAdminExamDetail(main) {
     })}
     <div class="exam-blocks-stack">
       ${summaryPanel}
+      ${timingPanel}
       ${problemPanel}
       ${studentsPanel}
       ${questionsPanel}
