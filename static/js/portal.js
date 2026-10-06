@@ -678,19 +678,60 @@ function renderMetricColumns(items) {
     .join("")}</div>`;
 }
 
-function renderProblemQuestionErrorsCell(pq, questionStats) {
-  const timeLabel = pq.avg_time_label || questionStats?.avg_time_label;
-  const exitLabel = pq.question_exit_label || questionStats?.question_exit_label;
-  const lines = [`<strong>${pq.failed_percent}%</strong>`];
-  if (timeLabel) {
-    lines.push(
-      `<span class="cell-time-sub muted">ср. на вопросе ${escapeHtml(timeLabel)}</span>`
-    );
-  }
-  if (exitLabel) {
-    lines.push(`<span class="cell-exit-sub muted">${escapeHtml(exitLabel)}</span>`);
-  }
-  return `<div class="cell-errors-stack">${lines.join("")}</div>`;
+function problemQuestionRowFields(pq, questionStats) {
+  return {
+    failed_percent: pq.failed_percent,
+    avg_time_label: pq.avg_time_label || questionStats?.avg_time_label,
+    question_exit_total:
+      pq.question_exit_total ?? questionStats?.question_exit_total ?? 0,
+    question_away_total_seconds:
+      pq.question_away_total_seconds ?? questionStats?.question_away_total_seconds ?? 0,
+  };
+}
+
+function renderProblemQuestionExitCell(meta) {
+  const n = Number(meta.question_exit_total) || 0;
+  if (n <= 0) return `<span class="tag tag-ok">нет</span>`;
+  const away = Number(meta.question_away_total_seconds) || 0;
+  const countLabel = n === 1 ? "1 раз" : `${n} раз`;
+  const awayHtml =
+    away > 0
+      ? `<span class="cell-away-sub muted">${escapeHtml(formatDurationLabel(away))} вне</span>`
+      : "";
+  return `<div class="cell-exit-col"><span class="tag tag-warn">${escapeHtml(countLabel)}</span>${awayHtml}</div>`;
+}
+
+function renderProblemQuestionsTable(questions, problemRows, questionStats) {
+  const head = ["№", "Вопрос", "Ошибок", "На вопросе", "Окно"]
+    .map((label) => `<th scope="col">${escapeHtml(label)}</th>`)
+    .join("");
+  const body = problemRows.length
+    ? problemRows
+        .map((pq) => {
+          const meta = problemQuestionRowFields(pq, questionStats[pq.index]);
+          const q = questions[pq.index];
+          const qText = escapeHtml(q ? q.text : `Вопрос ${pq.index + 1}`);
+          const timeCell = meta.avg_time_label
+            ? escapeHtml(meta.avg_time_label)
+            : "—";
+          return `<tr>
+            <td class="num">${pq.index + 1}</td>
+            <td class="col-question" title="${qText}">${qText}</td>
+            <td class="num"><strong>${meta.failed_percent}%</strong></td>
+            <td class="num">${timeCell}</td>
+            <td class="num col-exit">${renderProblemQuestionExitCell(meta)}</td>
+          </tr>`;
+        })
+        .join("")
+    : `<tr><td class="muted" colspan="5">Нет данных</td></tr>`;
+  return `<div class="problem-table-wrap">
+    <div class="student-table-scroll">
+      <table class="data-table table-problems">
+        <thead><tr>${head}</tr></thead>
+        <tbody>${body}</tbody>
+      </table>
+    </div>
+  </div>`;
 }
 
 function renderDataTable({ columns, rows, tableClass = "" }) {
@@ -2023,30 +2064,11 @@ async function renderAdminExamDetail(main) {
 
   const problemPanel =
     data.problem_questions.length > 0
-      ? `<section class="panel panel-warn panel-block" aria-labelledby="exam-problems-title">
+      ? `<section class="panel panel-warn panel-block panel-problems-table" aria-labelledby="exam-problems-title">
       <h3 id="exam-problems-title">Сложные вопросы</h3>
       <p class="lead muted">Вопросы, где ≥40% сдавших ошиблись или не ответили</p>
       ${problemPanelLead ? `<p class="problem-panel-meta muted">${escapeHtml(problemPanelLead)}</p>` : ""}
-      ${renderDataTable({
-        tableClass: "table-compact table-problems",
-        columns: [
-          { label: "№", cellClass: "num", render: (pq) => String(pq.index + 1) },
-          {
-            label: "Вопрос",
-            render: (pq) => {
-              const q = data.questions[pq.index];
-              return escapeHtml(q ? q.text : `Вопрос ${pq.index + 1}`);
-            },
-          },
-          {
-            label: "Ошибок",
-            cellClass: "num col-errors-stack",
-            render: (pq) =>
-              renderProblemQuestionErrorsCell(pq, data.question_stats[pq.index]),
-          },
-        ],
-        rows: data.problem_questions,
-      })}
+      ${renderProblemQuestionsTable(data.questions, data.problem_questions, data.question_stats)}
     </section>`
       : `<section class="panel panel-muted-inline panel-block" aria-labelledby="exam-problems-title">
       <h3 id="exam-problems-title">Сложные вопросы</h3>

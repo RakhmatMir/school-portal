@@ -263,6 +263,8 @@ function buildAnalytics(bundle, examId, questions, students, submissions) {
           index,
           failed_percent: st.failed_percent,
           avg_time_label: st.avg_time_label,
+          question_exit_total: st.question_exit_total,
+          question_away_total_seconds: st.question_away_total_seconds,
           question_exit_label: st.question_exit_label,
         });
       }
