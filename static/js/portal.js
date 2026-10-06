@@ -13,6 +13,9 @@ const THEME_KEY = "portal_theme";
 /** Временно: ученик заходит в тест без «Старт» учителя (для проверки прохождения). */
 const PORTAL_SKIP_TEACHER_START = true;
 
+/** Временно: панель «Старт теста» на экране контрольной у учителя. */
+const SHOW_EXAM_SESSION_PANEL = false;
+
 const portalState = {
   session: null,
   adminView: "home",
@@ -292,6 +295,7 @@ function syncExamSessionPanelUI(panel, examId, total) {
 }
 
 function renderExamSessionPanel(ex, students) {
+  if (!SHOW_EXAM_SESSION_PANEL) return "";
   const isTodo = ex.catalog_key === "todo";
   if (!isTodo) {
     return `<div class="panel panel-demo panel-session">
