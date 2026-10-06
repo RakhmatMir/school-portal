@@ -678,6 +678,27 @@ function renderMetricColumns(items) {
     .join("")}</div>`;
 }
 
+function renderProblemQuestionErrorsCell(pq, questionStats) {
+  const timeLabel = pq.avg_time_label || questionStats?.avg_time_label;
+  const examTimeLabel = pq.avg_exam_time_label || questionStats?.avg_exam_time_label;
+  const exitLabel = pq.exit_among_failed_label || questionStats?.exit_among_failed_label;
+  const lines = [`<strong>${pq.failed_percent}%</strong>`];
+  if (timeLabel) {
+    lines.push(
+      `<span class="cell-time-sub muted">на вопросе: ср. ${escapeHtml(timeLabel)}</span>`
+    );
+  }
+  if (examTimeLabel) {
+    lines.push(
+      `<span class="cell-time-sub muted">тест: ср. ${escapeHtml(examTimeLabel)}</span>`
+    );
+  }
+  if (exitLabel) {
+    lines.push(`<span class="cell-exit-sub muted">${escapeHtml(exitLabel)}</span>`);
+  }
+  return `<div class="cell-errors-stack">${lines.join("")}</div>`;
+}
+
 function renderDataTable({ columns, rows, tableClass = "" }) {
   const head = columns.map((c) => `<th scope="col">${escapeHtml(c.label)}</th>`).join("");
   const body = rows.length
@@ -1932,13 +1953,23 @@ async function renderAdminExamDetail(main) {
     ? renderStudentResultsTable(data.students)
     : `<p class="muted">В классе пока нет учеников — добавим позже</p>`;
 
+  const problemPanelLead = [
+    timing.avgLabel ? `Ср. время теста (класс): ${timing.avgLabel}` : null,
+    timing.exitLabel
+      ? timing.exitLabel.replace(/^выход:\s*/i, "Выход из окна: ")
+      : null,
+  ]
+    .filter(Boolean)
+    .join(" · ");
+
   const problemPanel =
     data.problem_questions.length > 0
       ? `<section class="panel panel-warn panel-block" aria-labelledby="exam-problems-title">
       <h3 id="exam-problems-title">Сложные вопросы</h3>
       <p class="lead muted">Вопросы, где ≥40% сдавших ошиблись или не ответили</p>
+      ${problemPanelLead ? `<p class="problem-panel-meta muted">${escapeHtml(problemPanelLead)}</p>` : ""}
       ${renderDataTable({
-        tableClass: "table-compact",
+        tableClass: "table-compact table-problems",
         columns: [
           { label: "№", cellClass: "num", render: (pq) => String(pq.index + 1) },
           {
@@ -1951,13 +1982,8 @@ async function renderAdminExamDetail(main) {
           {
             label: "Ошибок",
             cellClass: "num col-errors-stack",
-            render: (pq) => {
-              const timeLabel = pq.avg_time_label || data.question_stats[pq.index]?.avg_time_label;
-              const timeHtml = timeLabel
-                ? `<span class="cell-time-sub muted">ср. ${escapeHtml(timeLabel)}</span>`
-                : "";
-              return `<div class="cell-errors-stack"><strong>${pq.failed_percent}%</strong>${timeHtml}</div>`;
-            },
+            render: (pq) =>
+              renderProblemQuestionErrorsCell(pq, data.question_stats[pq.index]),
           },
         ],
         rows: data.problem_questions,

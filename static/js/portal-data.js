@@ -182,10 +182,18 @@ function buildAnalytics(bundle, examId, questions, students, submissions) {
   const stats = questions.map((q, qi) => {
     let failed = 0;
     const times = [];
+    let failedExit = 0;
+    const failedExamDurations = [];
     if (submittedTotal) {
       for (const st of submitted) {
         const picks = answersForStudent(bundle, examId, st, questions, submissions);
-        if (!picks || qi >= picks.length || picks[qi] !== q.correct_index) failed++;
+        const wrong = !picks || qi >= picks.length || picks[qi] !== q.correct_index;
+        if (wrong) {
+          failed++;
+          if (Number(st.exit_intent_count) > 0) failedExit++;
+          const dur = parseDurationLabelToSeconds(st.duration_label);
+          if (dur != null && dur >= 0) failedExamDurations.push(dur);
+        }
         const qt = questionTimesForStudent(bundle, examId, st, questions, submissions);
         if (qt && qt[qi] != null && qt[qi] >= 0) times.push(qt[qi]);
       }
@@ -194,6 +202,18 @@ function buildAnalytics(bundle, examId, questions, students, submissions) {
     const avgTimeSec = times.length
       ? Math.round(times.reduce((a, b) => a + b, 0) / times.length)
       : null;
+    const avgFailedExamSec = failedExamDurations.length
+      ? Math.round(failedExamDurations.reduce((a, b) => a + b, 0) / failedExamDurations.length)
+      : null;
+    let exitAmongFailedLabel = null;
+    if (failed > 0) {
+      exitAmongFailedLabel =
+        failedExit === 0
+          ? "окно: не выходили"
+          : failedExit === 1 && failed === 1
+            ? "окно: выходил"
+            : `окно: ${failedExit} из ${failed} ошибившихся`;
+    }
     return {
       submitted_total: submittedTotal,
       failed_count: failed,
@@ -201,6 +221,9 @@ function buildAnalytics(bundle, examId, questions, students, submissions) {
       avg_time_seconds: avgTimeSec,
       avg_time_label: avgTimeSec != null ? formatSecondsLabel(avgTimeSec) : null,
       timed_count: times.length,
+      avg_exam_time_label:
+        avgFailedExamSec != null ? formatSecondsLabel(avgFailedExamSec) : null,
+      exit_among_failed_label: exitAmongFailedLabel,
     };
   });
   const problem = [];
@@ -211,6 +234,8 @@ function buildAnalytics(bundle, examId, questions, students, submissions) {
           index,
           failed_percent: st.failed_percent,
           avg_time_label: st.avg_time_label,
+          avg_exam_time_label: st.avg_exam_time_label,
+          exit_among_failed_label: st.exit_among_failed_label,
         });
       }
     });
