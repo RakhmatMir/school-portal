@@ -15,14 +15,18 @@
 
 ---
 
-## Локальный демо-сервер (опционально)
+## Локальный демо-сервер (полный функционал)
 
 ```bash
 pip install -r requirements.txt
 ./run.sh
 ```
 
-http://127.0.0.1:8080 — те же экраны, данные в памяти (не таблица).
+Откройте **http://127.0.0.1:8080** — те же экраны, что в перенесённом проекте; данные в памяти (`demo_data.py`), без Google Таблицы.
+
+В **Cloud Agent** портал поднимается автоматически (`install` + `start` в `.cursor/environment.json`), порт **8080**.
+
+Публичная ссылка без своего сервера: `./run_with_tunnel.sh` (нужен [cloudflared](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/downloads/)); URL появится в `logs/tunnel-url.txt`.
 
 ## Демо-логины (после `initializeSheets` или локально)
 
