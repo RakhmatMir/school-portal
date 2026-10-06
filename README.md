@@ -7,12 +7,15 @@
 
 ---
 
-## Рекомендуемый способ (постоянный сайт без туннеля)
+## Рекомендуемый способ (как портфолио на GitHub + таблица как БД)
 
-1. Таблица «Школьный портал» + Apps Script Web App  
-2. Пошагово: **[google-sheets/SETUP-RU.md](google-sheets/SETUP-RU.md)**  
-3. В Apps Script: `Code.gs`, `WebApp`, `PortalStyles`, `PortalScript` (после правок UI: `python3 google-sheets/build_gas_assets.py`)  
-4. Ссылка вида `https://script.google.com/macros/s/…/exec` — для учеников и учителей, как у портфолио на Google.
+1. **Сайт** — GitHub Pages (`index.html` + `static/`)  
+2. **Данные** — Google Таблица  
+3. **API** — Apps Script (`Code.gs`), один URL `…/exec`  
+4. Инструкция: **[google-sheets/GITHUB-PAGES-RU.md](google-sheets/GITHUB-PAGES-RU.md)**  
+5. В `static/js/portal-config.js` укажите `PORTAL_API_URL` после развёртывания скрипта.
+
+Альтернатива (всё на Google одной ссылкой): **[google-sheets/SETUP-RU.md](google-sheets/SETUP-RU.md)** — WebApp + HTML-вложения.
 
 ---
 

@@ -5,12 +5,51 @@
 var SESSION_TTL_SEC = 604800;
 var PROBLEM_QUESTION_THRESHOLD_PERCENT = 40;
 
-function doGet() {
+function doGet(e) {
+  e = e || { parameter: {} };
+  if (String(e.parameter.api || '') === '1') {
+    return handleHttpApi_(e.parameter.token, e.parameter.path, e.parameter.method, e.parameter.body || '');
+  }
   return HtmlService.createTemplateFromFile('WebApp')
     .evaluate()
     .setTitle('Школьный портал')
     .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL)
     .addMetaTag('viewport', 'width=device-width, initial-scale=1');
+}
+
+function doPost(e) {
+  e = e || {};
+  try {
+    var raw = e.postData && e.postData.contents ? e.postData.contents : '{}';
+    var envelope = JSON.parse(raw);
+    return handleHttpApi_(
+      envelope.token,
+      envelope.path,
+      envelope.method,
+      envelope.body == null ? '' : String(envelope.body)
+    );
+  } catch (err) {
+    return jsonErr_(err.message || String(err));
+  }
+}
+
+function handleHttpApi_(token, path, method, bodyJson) {
+  try {
+    var data = apiRoute(token, path, method, bodyJson);
+    return jsonOk_(data);
+  } catch (err) {
+    return jsonErr_(err.message || String(err));
+  }
+}
+
+function jsonOk_(data) {
+  return ContentService.createTextOutput(JSON.stringify({ ok: true, data: data }))
+    .setMimeType(ContentService.MimeType.JSON);
+}
+
+function jsonErr_(detail) {
+  return ContentService.createTextOutput(JSON.stringify({ ok: false, detail: String(detail || 'error') }))
+    .setMimeType(ContentService.MimeType.JSON);
 }
 
 function include(filename) {

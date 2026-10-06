@@ -495,8 +495,48 @@ async function loadStudentCompletedTests(fromSubjectsPayload) {
 
 const PORTAL_GAS_TOKEN_KEY = "portal_gs_token";
 
+function getPortalApiUrl() {
+  const url = String(window.PORTAL_API_URL || "").trim();
+  return url || null;
+}
+
 function apiUsesGas() {
   return Boolean(window.PORTAL_USE_GAS && typeof google !== "undefined" && google.script && google.script.run);
+}
+
+function apiUsesRemote() {
+  return Boolean(getPortalApiUrl() && !apiUsesGas());
+}
+
+async function apiRemote(path, options = {}) {
+  const base = getPortalApiUrl();
+  if (!base) {
+    throw new Error("portal_api_url_missing");
+  }
+  const envelope = {
+    path,
+    method: String(options.method || "GET").toUpperCase(),
+    token: localStorage.getItem(PORTAL_GAS_TOKEN_KEY) || "",
+    body: options.body == null ? "" : String(options.body),
+  };
+  const res = await fetch(base, {
+    method: "POST",
+    headers: { "Content-Type": "text/plain;charset=utf-8" },
+    body: JSON.stringify(envelope),
+    redirect: "follow",
+  });
+  const text = await res.text();
+  let parsed = null;
+  try {
+    parsed = text ? JSON.parse(text) : null;
+  } catch {
+    parsed = null;
+  }
+  if (!parsed || parsed.ok !== true) {
+    const detail = parsed?.detail || (res.ok ? "request_failed" : res.statusText);
+    throw new Error(typeof detail === "string" ? detail : "request_failed");
+  }
+  return parsed.data;
 }
 
 function apiGas(path, options = {}) {
@@ -517,6 +557,9 @@ function apiGas(path, options = {}) {
 async function api(path, options = {}) {
   if (apiUsesGas()) {
     return apiGas(path, options);
+  }
+  if (apiUsesRemote()) {
+    return apiRemote(path, options);
   }
   const res = await fetch(path, {
     credentials: "same-origin",
@@ -2231,13 +2274,18 @@ async function renderDashboard(session) {
 }
 
 async function loadLanding() {
+  if (location.hostname.endsWith("github.io") && !getPortalApiUrl()) {
+    $("landing-sub").textContent =
+      "Укажите URL API в static/js/portal-config.js (см. google-sheets/GITHUB-PAGES-RU.md)";
+    return;
+  }
   try {
     const data = await api("/api/public/landing");
     if (data.school_name) {
       $("landing-school-name").textContent = data.school_name;
     }
   } catch {
-    $("landing-sub").textContent = "Не удалось загрузить название школы";
+    $("landing-sub").textContent = "Не удалось загрузить название школы — проверьте PORTAL_API_URL и развёртывание Apps Script";
   }
 }
 
