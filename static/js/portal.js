@@ -1680,9 +1680,23 @@ function isTeacherRole() {
   return portalState.session?.user?.role === "teacher";
 }
 
+function renderStaffTestsPool(poolKey, label, tests) {
+  const mod = poolKey === "done" ? "done" : "active";
+  const countLabel = tests.length
+    ? `${tests.length} ${tests.length === 1 ? "тест" : "теста"}`
+    : "нет тестов";
+  return `<section class="staff-tests-pool staff-tests-pool--${mod}" aria-label="${escapeHtml(label)}">
+    <div class="staff-tests-pool-head">
+      <span class="staff-tests-pool-badge">${escapeHtml(label)}</span>
+      <span class="staff-tests-pool-count muted">${escapeHtml(countLabel)}</span>
+    </div>
+    <ul class="list-plain staff-tests-pool-list">${renderStaffHomeTestRows(tests, poolKey)}</ul>
+  </section>`;
+}
+
 function renderStaffHomeTestRows(tests, poolKey) {
   if (!tests.length) {
-    return `<li><span class="muted">Нет тестов в этой группе</span></li>`;
+    return `<li class="staff-tests-empty"><span class="muted">Нет тестов в этой группе</span></li>`;
   }
   return tests
     .map((t, idx) => {
@@ -1892,10 +1906,10 @@ async function renderAdminHome(main, session) {
     ? `<div class="panel panel-staff-tests">
       <h3>Тесты</h3>
       <p class="lead muted staff-tests-hint">Как через «Классы»: нажмите тест → предмет → список контрольных.</p>
-      <h4 class="staff-tests-subhead">К сдаче</h4>
-      <ul class="list-plain">${renderStaffHomeTestRows(activeTests, "active")}</ul>
-      <h4 class="staff-tests-subhead">Пройденные</h4>
-      <ul class="list-plain">${renderStaffHomeTestRows(doneTests, "done")}</ul>
+      <div class="staff-tests-pools">
+        ${renderStaffTestsPool("active", "К сдаче", activeTests)}
+        ${renderStaffTestsPool("done", "Пройденные", doneTests)}
+      </div>
     </div>`
     : "";
   main.innerHTML = `

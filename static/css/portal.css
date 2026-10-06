@@ -452,15 +452,77 @@ body.exam-guard-open #exam-guard-modal .exam-guard-dialog {
   font-size: 0.9rem;
 }
 
-.staff-tests-subhead {
-  margin: 16px 0 8px;
-  font-size: 0.95rem;
-  font-weight: 600;
-  color: var(--muted);
+.staff-tests-pools {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-top: 6px;
 }
 
-.panel-staff-tests .staff-tests-subhead:first-of-type {
-  margin-top: 4px;
+.staff-tests-pool {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 12px 12px 6px;
+}
+
+.staff-tests-pool--active {
+  border-color: color-mix(in srgb, var(--accent) 42%, var(--border));
+  background: color-mix(in srgb, var(--accent) 7%, var(--card));
+}
+
+.staff-tests-pool--done {
+  border-color: color-mix(in srgb, #22c55e 38%, var(--border));
+  background: color-mix(in srgb, #22c55e 8%, var(--card));
+}
+
+.staff-tests-pool-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+
+.staff-tests-pool-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 11px;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.staff-tests-pool--active .staff-tests-pool-badge {
+  background: color-mix(in srgb, var(--accent) 22%, var(--card));
+  color: var(--accent);
+}
+
+.staff-tests-pool--done .staff-tests-pool-badge {
+  background: color-mix(in srgb, #22c55e 22%, var(--card));
+  color: color-mix(in srgb, #15803d 70%, var(--text));
+}
+
+[data-theme="dark"] .staff-tests-pool--done .staff-tests-pool-badge {
+  color: #86efac;
+}
+
+.staff-tests-pool-count {
+  font-size: 0.82rem;
+}
+
+.staff-tests-pool-list li.staff-tests-empty {
+  padding: 8px 4px 10px;
+  border-bottom: none;
+}
+
+.staff-tests-pool--active .staff-tests-pool-list li.row-link:hover {
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+}
+
+.staff-tests-pool--done .staff-tests-pool-list li.row-link:hover {
+  background: color-mix(in srgb, #22c55e 14%, transparent);
 }
 
 .data-table tbody tr.row-link {
