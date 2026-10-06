@@ -163,6 +163,38 @@ function demoQuestionTimes(bundle, examId, studentId) {
   return Array.isArray(arr) ? arr.map((n) => Number(n)) : null;
 }
 
+function demoQuestionAwaySeconds(bundle, examId, studentId) {
+  const key = `${examId}:${studentId}`;
+  const arr = bundle.demo_question_away_seconds?.[key];
+  return Array.isArray(arr) ? arr.map((n) => Number(n)) : null;
+}
+
+function demoQuestionExitCounts(bundle, examId, studentId) {
+  const key = `${examId}:${studentId}`;
+  const arr = bundle.demo_question_exit_counts?.[key];
+  return Array.isArray(arr) ? arr.map((n) => Number(n)) : null;
+}
+
+function questionAwayForStudent(bundle, examId, student, questions, submissions) {
+  const sub = getSubmission(submissions, examId, student.id);
+  if (sub?.question_away_seconds?.length) {
+    return sub.question_away_seconds.map((n) => Number(n));
+  }
+  const demo = demoQuestionAwaySeconds(bundle, examId, student.id);
+  if (demo?.length) return demo;
+  return questions.map(() => 0);
+}
+
+function questionExitsForStudent(bundle, examId, student, questions, submissions) {
+  const sub = getSubmission(submissions, examId, student.id);
+  if (sub?.question_exit_counts?.length) {
+    return sub.question_exit_counts.map((n) => Number(n));
+  }
+  const demo = demoQuestionExitCounts(bundle, examId, student.id);
+  if (demo?.length) return demo;
+  return questions.map(() => 0);
+}
+
 function questionTimesForStudent(bundle, examId, student, questions, submissions) {
   const sub = getSubmission(submissions, examId, student.id);
   if (sub?.question_times?.length) {
@@ -182,37 +214,34 @@ function buildAnalytics(bundle, examId, questions, students, submissions) {
   const stats = questions.map((q, qi) => {
     let failed = 0;
     const times = [];
-    let failedExit = 0;
-    const failedExamDurations = [];
+    let questionExitTotal = 0;
+    let questionAwayTotal = 0;
     if (submittedTotal) {
       for (const st of submitted) {
         const picks = answersForStudent(bundle, examId, st, questions, submissions);
         const wrong = !picks || qi >= picks.length || picks[qi] !== q.correct_index;
-        if (wrong) {
-          failed++;
-          if (Number(st.exit_intent_count) > 0) failedExit++;
-          const dur = parseDurationLabelToSeconds(st.duration_label);
-          if (dur != null && dur >= 0) failedExamDurations.push(dur);
-        }
+        if (wrong) failed++;
         const qt = questionTimesForStudent(bundle, examId, st, questions, submissions);
         if (qt && qt[qi] != null && qt[qi] >= 0) times.push(qt[qi]);
+        const qx = questionExitsForStudent(bundle, examId, st, questions, submissions);
+        const qa = questionAwayForStudent(bundle, examId, st, questions, submissions);
+        if (qx && qx[qi] > 0) questionExitTotal += qx[qi];
+        if (qa && qa[qi] > 0) questionAwayTotal += qa[qi];
       }
     }
     const failedPercent = submittedTotal ? Math.round((100 * failed) / submittedTotal) : 0;
     const avgTimeSec = times.length
       ? Math.round(times.reduce((a, b) => a + b, 0) / times.length)
       : null;
-    const avgFailedExamSec = failedExamDurations.length
-      ? Math.round(failedExamDurations.reduce((a, b) => a + b, 0) / failedExamDurations.length)
-      : null;
-    let exitAmongFailedLabel = null;
-    if (failed > 0) {
-      exitAmongFailedLabel =
-        failedExit === 0
-          ? "окно: не выходили"
-          : failedExit === 1 && failed === 1
-            ? "окно: выходил"
-            : `окно: ${failedExit} из ${failed} ошибившихся`;
+    let questionExitLabel = null;
+    if (submittedTotal) {
+      if (questionExitTotal === 0) {
+        questionExitLabel = "окно: без выходов";
+      } else {
+        const awayPart =
+          questionAwayTotal > 0 ? ` · ${formatSecondsLabel(questionAwayTotal)} вне вкладки` : "";
+        questionExitLabel = `окно: ${questionExitTotal} раз${awayPart}`;
+      }
     }
     return {
       submitted_total: submittedTotal,
@@ -221,9 +250,9 @@ function buildAnalytics(bundle, examId, questions, students, submissions) {
       avg_time_seconds: avgTimeSec,
       avg_time_label: avgTimeSec != null ? formatSecondsLabel(avgTimeSec) : null,
       timed_count: times.length,
-      avg_exam_time_label:
-        avgFailedExamSec != null ? formatSecondsLabel(avgFailedExamSec) : null,
-      exit_among_failed_label: exitAmongFailedLabel,
+      question_exit_total: questionExitTotal,
+      question_away_total_seconds: questionAwayTotal,
+      question_exit_label: questionExitLabel,
     };
   });
   const problem = [];
@@ -234,8 +263,7 @@ function buildAnalytics(bundle, examId, questions, students, submissions) {
           index,
           failed_percent: st.failed_percent,
           avg_time_label: st.avg_time_label,
-          avg_exam_time_label: st.avg_exam_time_label,
-          exit_among_failed_label: st.exit_among_failed_label,
+          question_exit_label: st.question_exit_label,
         });
       }
     });
@@ -446,7 +474,15 @@ export async function dataApi(path, options = {}) {
     const questionTimes = Array.isArray(body.question_times)
       ? body.question_times.map((n) => Math.max(0, Math.round(Number(n) || 0)))
       : [];
+    const questionAwaySeconds = Array.isArray(body.question_away_seconds)
+      ? body.question_away_seconds.map((n) => Math.max(0, Math.round(Number(n) || 0)))
+      : [];
+    const questionExitCounts = Array.isArray(body.question_exit_counts)
+      ? body.question_exit_counts.map((n) => Math.max(0, Math.round(Number(n) || 0)))
+      : [];
     while (questionTimes.length < total) questionTimes.push(0);
+    while (questionAwaySeconds.length < total) questionAwaySeconds.push(0);
+    while (questionExitCounts.length < total) questionExitCounts.push(0);
     const durationSec = questionTimes.reduce((a, b) => a + b, 0);
     const durationLabel = durationSec > 0 ? formatSecondsLabel(durationSec) : "10:42";
     const map = loadSubmissions();
@@ -456,6 +492,8 @@ export async function dataApi(path, options = {}) {
       question_total: total,
       answers,
       question_times: questionTimes.slice(0, total),
+      question_away_seconds: questionAwaySeconds.slice(0, total),
+      question_exit_counts: questionExitCounts.slice(0, total),
       exit_intent_count: Number(body.exit_intent_count || 0),
       duration_label: durationLabel,
       feedback,

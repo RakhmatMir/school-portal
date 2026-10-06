@@ -680,17 +680,11 @@ function renderMetricColumns(items) {
 
 function renderProblemQuestionErrorsCell(pq, questionStats) {
   const timeLabel = pq.avg_time_label || questionStats?.avg_time_label;
-  const examTimeLabel = pq.avg_exam_time_label || questionStats?.avg_exam_time_label;
-  const exitLabel = pq.exit_among_failed_label || questionStats?.exit_among_failed_label;
+  const exitLabel = pq.question_exit_label || questionStats?.question_exit_label;
   const lines = [`<strong>${pq.failed_percent}%</strong>`];
   if (timeLabel) {
     lines.push(
-      `<span class="cell-time-sub muted">на вопросе: ср. ${escapeHtml(timeLabel)}</span>`
-    );
-  }
-  if (examTimeLabel) {
-    lines.push(
-      `<span class="cell-time-sub muted">тест: ср. ${escapeHtml(examTimeLabel)}</span>`
+      `<span class="cell-time-sub muted">ср. на вопросе ${escapeHtml(timeLabel)}</span>`
     );
   }
   if (exitLabel) {
@@ -1063,9 +1057,21 @@ function hideExamGuardModal() {
   document.body.classList.remove("exam-guard-open");
 }
 
+function getActiveExamQuestionIndex(examId) {
+  if (!$("screen-app")?.classList.contains("is-test-active")) return -1;
+  const step = portalState.examRunStep[examId];
+  return Number.isFinite(step) ? step : 0;
+}
+
 function recordExamDistraction(examId, reasonKey, { showModal = true } = {}) {
   if (!portalState.examExitIntents) portalState.examExitIntents = {};
   portalState.examExitIntents[examId] = getExamExitIntentCount(examId) + 1;
+  const qIndex = getActiveExamQuestionIndex(examId);
+  const timing = portalState.examQuestionTimes[examId];
+  if (timing && qIndex >= 0 && qIndex < timing.seconds.length) {
+    if (!timing.exitCounts) timing.exitCounts = timing.seconds.map(() => 0);
+    timing.exitCounts[qIndex] = (timing.exitCounts[qIndex] || 0) + 1;
+  }
   syncExamExitIntentStorage(examId);
   if (showModal) showExamGuardModal(reasonKey);
 }
@@ -1098,8 +1104,15 @@ function startExamFocusGuard(examId) {
   const onVisibility = () => {
     if (!examGuardHandlers || examGuardHandlers.examId !== examIdLocal) return;
     if (document.visibilityState === "hidden") {
+      pauseExamQuestionTimer(examIdLocal);
+      examGuardHandlers.awaySince = Date.now();
       recordExamDistraction(examIdLocal, "visibility");
     } else {
+      if (examGuardHandlers.awaySince) {
+        addExamQuestionAwaySeconds(examIdLocal, examGuardHandlers.awaySince);
+        examGuardHandlers.awaySince = null;
+      }
+      resumeExamQuestionTimer(examIdLocal);
       showExamGuardModal("return", { countLine: true });
     }
   };
@@ -1248,16 +1261,52 @@ function ensureExamQuestionTiming(examId, questionCount) {
     portalState.examQuestionTimes[examId] = {
       stepStartedAt: Date.now(),
       seconds: Array.from({ length: questionCount }, () => 0),
+      awaySeconds: Array.from({ length: questionCount }, () => 0),
+      exitCounts: Array.from({ length: questionCount }, () => 0),
     };
   }
   return portalState.examQuestionTimes[examId];
 }
 
+function flushExamQuestionTimerSlice(examId) {
+  const timing = portalState.examQuestionTimes[examId];
+  if (!timing || timing.stepStartedAt == null) return;
+  const qIndex = getActiveExamQuestionIndex(examId);
+  if (qIndex < 0 || qIndex >= timing.seconds.length) return;
+  const spent = Math.max(0, Math.round((Date.now() - timing.stepStartedAt) / 1000));
+  if (spent > 0) timing.seconds[qIndex] = (timing.seconds[qIndex] || 0) + spent;
+  timing.stepStartedAt = Date.now();
+}
+
+function pauseExamQuestionTimer(examId) {
+  const timing = portalState.examQuestionTimes[examId];
+  if (!timing || timing.stepStartedAt == null) return;
+  flushExamQuestionTimerSlice(examId);
+  timing.stepStartedAt = null;
+}
+
+function resumeExamQuestionTimer(examId) {
+  const timing = portalState.examQuestionTimes[examId];
+  if (!timing || timing.stepStartedAt != null) return;
+  timing.stepStartedAt = Date.now();
+}
+
+function addExamQuestionAwaySeconds(examId, awaySinceMs) {
+  const timing = portalState.examQuestionTimes[examId];
+  const qIndex = getActiveExamQuestionIndex(examId);
+  if (!timing || qIndex < 0 || !awaySinceMs) return;
+  const sec = Math.max(1, Math.round((Date.now() - awaySinceMs) / 1000));
+  if (!timing.awaySeconds) timing.awaySeconds = timing.seconds.map(() => 0);
+  timing.awaySeconds[qIndex] = (timing.awaySeconds[qIndex] || 0) + sec;
+}
+
 function recordQuestionStepTime(examId, stepIndex, questionCount) {
   const timing = portalState.examQuestionTimes[examId];
   if (!timing || stepIndex < 0 || stepIndex >= questionCount) return;
-  const spent = Math.max(1, Math.round((Date.now() - timing.stepStartedAt) / 1000));
-  timing.seconds[stepIndex] = (timing.seconds[stepIndex] || 0) + spent;
+  if (timing.stepStartedAt != null) {
+    const spent = Math.max(1, Math.round((Date.now() - timing.stepStartedAt) / 1000));
+    timing.seconds[stepIndex] = (timing.seconds[stepIndex] || 0) + spent;
+  }
   timing.stepStartedAt = Date.now();
 }
 
@@ -1268,10 +1317,19 @@ async function submitStudentExam(examId, questionCount) {
   }
   const exitCount = getExamExitIntentCount(examId);
   const timing = portalState.examQuestionTimes[examId];
+  flushExamQuestionTimerSlice(examId);
   const questionTimes = timing?.seconds?.slice(0, questionCount) || [];
+  const questionAwaySeconds = timing?.awaySeconds?.slice(0, questionCount) || [];
+  const questionExitCounts = timing?.exitCounts?.slice(0, questionCount) || [];
   const result = await api(`/api/portal/exams/${examId}/submit`, {
     method: "POST",
-    body: JSON.stringify({ answers, exit_intent_count: exitCount, question_times: questionTimes }),
+    body: JSON.stringify({
+      answers,
+      exit_intent_count: exitCount,
+      question_times: questionTimes,
+      question_away_seconds: questionAwaySeconds,
+      question_exit_counts: questionExitCounts,
+    }),
   });
   stopExamTimer();
   clearExamDeadline(examId);
@@ -1471,8 +1529,7 @@ function mountStudentTestRunner(container, preview, examId) {
   }
   if (!portalState.examAnswers[examId]) portalState.examAnswers[examId] = {};
   ensureExamQuestionTiming(examId, qCount);
-
-  let step =
+  portalState.examRunStep[examId] =
     portalState.examRunStep[examId] ??
     (() => {
       const a = portalState.examAnswers[examId];
@@ -1481,6 +1538,8 @@ function mountStudentTestRunner(container, preview, examId) {
       }
       return qCount - 1;
     })();
+
+  let step = portalState.examRunStep[examId];
   let pendingOpt = null;
   let submitting = false;
 

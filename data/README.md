@@ -13,7 +13,9 @@
 | `rosters` | Ученики класса (для аналитики учителя) |
 | `demo_users` | **Вход на сайт** — login, password, role, full_name, class_name, id |
 | `demo_exam_answers` | Примеры ответов для демо-аналитики |
-| `demo_question_times` | Секунды на каждый вопрос (`exam_id:student_id` → массив) |
+| `demo_question_times` | Секунды на каждый вопрос (`exam_id:student_id` → массив), усредняются в аналитике |
+| `demo_question_exit_counts` | Выходы из вкладки на каждом вопросе |
+| `demo_question_away_seconds` | Секунды вне вкладки на каждом вопросе |
 
 ## Добавить ученика для входа
 
