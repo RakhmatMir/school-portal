@@ -16,6 +16,9 @@ const PORTAL_SKIP_TEACHER_START = true;
 /** Временно: панель «Старт теста» на экране контрольной у учителя. */
 const SHOW_EXAM_SESSION_PANEL = false;
 
+/** Временно: блок «Тест: как видит ученик» на экране контрольной. */
+const SHOW_STUDENT_PREVIEW_PANEL = false;
+
 const portalState = {
   session: null,
   adminView: "home",
@@ -2135,11 +2138,18 @@ async function renderAdminExamDetail(main) {
       ${renderMetricColumns(analyticsCols)}
     </section>`;
 
-  const testDemoInner = renderDemoTestPanel(preview, {
-    interactive: false,
-    title: "Демо: экран прохождения",
-    innerOnly: true,
-  });
+  const studentPreviewPanel = SHOW_STUDENT_PREVIEW_PANEL
+    ? renderCollapsiblePanel({
+        title: "Тест: как видит ученик",
+        hint: `${questionCountLabel(ex)} вопросов — нажмите, чтобы развернуть`,
+        open: false,
+        bodyHtml: renderDemoTestPanel(preview, {
+          interactive: false,
+          title: "Демо: экран прохождения",
+          innerOnly: true,
+        }),
+      })
+    : "";
 
   const sessionPanel = renderExamSessionPanel(ex, data.students);
   const teacherReportPanel = renderTeacherReportPanel(data, examId);
@@ -2152,12 +2162,7 @@ async function renderAdminExamDetail(main) {
     </div>
     ${teacherReportPanel}
     ${sessionPanel}
-    ${renderCollapsiblePanel({
-      title: "Тест: как видит ученик",
-      hint: `${questionCountLabel(ex)} вопросов — нажмите, чтобы развернуть`,
-      open: false,
-      bodyHtml: testDemoInner,
-    })}
+    ${studentPreviewPanel}
     <div class="exam-blocks-stack">
       ${summaryPanel}
       ${timingPanel}
