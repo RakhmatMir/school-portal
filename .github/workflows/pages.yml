@@ -22,6 +22,20 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
+      - name: Inject Apps Script auth URL from repository secret
+        env:
+          AUTH_URL: ${{ secrets.PORTAL_APPS_SCRIPT_URL }}
+        run: |
+          if [ -n "$AUTH_URL" ]; then
+            cat > static/js/portal-config.js <<EOF
+          /**
+           * URL входа (Google Apps Script). Задаётся секретом PORTAL_APPS_SCRIPT_URL в GitHub.
+           */
+          window.PORTAL_API_URL = "$AUTH_URL";
+          EOF
+          else
+            echo "PORTAL_APPS_SCRIPT_URL not set — login via Google will need manual portal-config.js"
+          fi
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:

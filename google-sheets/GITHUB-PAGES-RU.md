@@ -33,13 +33,13 @@
 ## 2. GitHub — весь контент портала
 
 1. Редактируйте **`data/portal.json`** в репозитории: название школы, классы, предметы, экзамены, вопросы.  
-2. В **`static/js/portal-config.js`**:
+2. **URL входа** — один из вариантов:
+   - **Рекомендуется:** GitHub → **Settings → Secrets and variables → Actions** → секрет  
+     `PORTAL_APPS_SCRIPT_URL` = ваш URL `https://script.google.com/macros/s/…/exec`  
+     (подставится при каждом деплое Pages).
+   - Или вручную в **`static/js/portal-config.js`** на `main`.
 
-```javascript
-window.PORTAL_API_URL = "https://script.google.com/macros/s/ВАШ_ID/exec";
-```
-
-3. Push в **main** → GitHub Pages (workflow в `.github/workflows/pages.yml`).  
+3. Push в **main** → GitHub Pages (workflow `.github/workflows/pages.yml`).  
 4. Сайт: `https://ВАШ_ЛОГИН.github.io/school-portal/`
 
 Сдачи тестов сохраняются **в браузере** (localStorage), не в таблице.
