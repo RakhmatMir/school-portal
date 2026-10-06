@@ -22,23 +22,11 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
-      - name: Inject Apps Script auth URL from repository secret
-        env:
-          AUTH_URL: ${{ secrets.PORTAL_APPS_SCRIPT_URL }}
+      - name: Ensure demo config (JSON-only, no Google Sheet)
         run: |
-          if [ -n "$AUTH_URL" ]; then
-            cat > static/js/portal-config.js <<EOF
-          /**
-           * URL входа (Google Apps Script). Задаётся секретом PORTAL_APPS_SCRIPT_URL в GitHub.
-           */
-          window.PORTAL_API_URL = "$AUTH_URL";
-          EOF
-          else
-            cat > static/js/portal-config.js <<'EOF'
-          /** Пусто = демо-вход из data/portal.json (до подключения Google Таблицы). */
+          cat > static/js/portal-config.js <<'EOF'
           window.PORTAL_API_URL = "";
           EOF
-          fi
       - uses: actions/configure-pages@v5
       - name: Prepare static site folder
         run: |

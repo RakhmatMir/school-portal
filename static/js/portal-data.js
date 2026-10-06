@@ -187,7 +187,7 @@ function publicUser(row) {
   };
 }
 
-/** Временный вход без Google (пока нет PORTAL_API_URL). Пароли в portal.json — только для демо. */
+/** Демо-вход из portal.json (без сервера и без Google). Пароли открыты — только для показа. */
 export async function demoAuthApi(path, options = {}) {
   const method = String(options.method || "GET").toUpperCase();
   const bundle = await loadPortalBundle();

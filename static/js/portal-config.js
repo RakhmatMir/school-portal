@@ -1,5 +1,5 @@
 /**
- * GitHub Pages: укажите URL развёрнутого Apps Script (API к Google Таблице).
- * Пример: static/js/portal-config.example.js
+ * Демо-режим: оставьте пустым — вход и данные из data/portal.json.
+ * Google Таблица не используется.
  */
 window.PORTAL_API_URL = "";

@@ -1,26 +1,24 @@
-# Один раз включить сайт на GitHub
+# Запуск сайта (только GitHub, без таблицы)
 
-Код уже в ветке **main**. Осталось **2 шага** (без этого сайт 404).
+## Ссылка
 
-## 1. GitHub Pages (1 минута)
+**https://rakhmatmir.github.io/school-portal/**
 
-1. Откройте: https://github.com/RakhmatMir/school-portal/settings/pages  
-2. **Build and deployment → Source:** выберите **GitHub Actions** (не «Deploy from branch»).  
-3. Сохраните. Зайдите в **Actions** → workflow **Deploy GitHub Pages** → **Run workflow** (или сделайте любой push в `main`).
+Не открывайте просто `rakhmatmir.github.io` — будет 404.
 
-**https://rakhmatmir.github.io/school-portal/** — не открывайте просто `rakhmatmir.github.io` (будет 404).
+## Если сайт не открывается
 
-Пока без Google: `student1` / `student123`, `teacher` / `teacher123`, `admin` / `admin123`.
+1. https://github.com/RakhmatMir/school-portal/settings/pages → **Source: GitHub Actions**.  
+2. **Actions** → **Deploy GitHub Pages** → **Run workflow** (ветка `main`).
 
-## 2. Вход через Google Таблицу
+## Вход (демо)
 
-1. Таблица → **Расширения → Apps Script** → вставьте `google-sheets/Code.gs` → **`initializeSheets`**.  
-2. **Развернуть → Веб-приложение** (доступ **Все**) → скопируйте URL `…/exec`.  
-3. GitHub → **Settings → Secrets and variables → Actions** → **New repository secret**  
-   - Name: `PORTAL_APPS_SCRIPT_URL`  
-   - Value: ваш URL `https://script.google.com/macros/s/…/exec`  
-4. **Actions** → снова запустите **Deploy GitHub Pages** (чтобы секрет попал в `portal-config.js`).
+Логины в `data/portal.json` → `demo_users`:
 
-Вход: `student1` / `student123` (если не меняли лист `users`).
+- `student1` / `student123`
+- `teacher` / `teacher123`
+- `admin` / `admin123`
 
-Подробнее: [google-sheets/GITHUB-PAGES-RU.md](google-sheets/GITHUB-PAGES-RU.md).
+## Редактирование
+
+Меняйте **`data/portal.json`** и пушьте в `main`. Таблица Google не нужна.
