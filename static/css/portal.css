@@ -719,13 +719,28 @@ li.student-row .student-row-meta {
   border-radius: 10px;
 }
 
+.panel-students {
+  overflow: hidden;
+}
+
+.student-table-scroll {
+  overflow-x: hidden;
+  margin-top: 4px;
+  max-width: 100%;
+}
+
 .data-table.table-students {
   table-layout: fixed;
+  min-width: 0;
+  width: 100%;
+  font-size: 0.84rem;
 }
 
 .data-table.table-students th,
 .data-table.table-students td {
   border-right: 1px solid var(--border);
+  padding: 8px 6px;
+  vertical-align: middle;
 }
 
 .data-table.table-students th:last-child,
@@ -735,25 +750,69 @@ li.student-row .student-row-meta {
 
 .data-table.table-students th:nth-child(1),
 .data-table.table-students td:nth-child(1) {
-  width: 40%;
+  width: 34%;
+  max-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .data-table.table-students th:nth-child(2),
 .data-table.table-students td:nth-child(2) {
-  width: 38%;
-  text-align: left;
-  white-space: normal;
-  word-break: break-word;
+  width: 22%;
+  text-align: center;
+  white-space: nowrap;
 }
 
 .data-table.table-students th:nth-child(3),
 .data-table.table-students td:nth-child(3) {
-  width: 22%;
+  width: 18%;
+  text-align: center;
+}
+
+.data-table.table-students th:nth-child(4),
+.data-table.table-students td:nth-child(4) {
+  width: 26%;
+  text-align: center;
+}
+
+.data-table.table-students td.num {
+  text-align: center;
 }
 
 .data-table.table-students td:nth-child(2) .cell-submission {
-  display: block;
+  display: inline-block;
   font-weight: 600;
+}
+
+.panel-students .tag {
+  padding: 2px 7px;
+  font-size: 0.7rem;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  vertical-align: middle;
+}
+
+@media (max-width: 380px) {
+  .data-table.table-students {
+    font-size: 0.78rem;
+  }
+
+  .data-table.table-students th,
+  .data-table.table-students td {
+    padding: 7px 4px;
+  }
+
+  .data-table.table-students th:nth-child(1),
+  .data-table.table-students td:nth-child(1) {
+    width: 30%;
+  }
+
+  .data-table.table-students th:nth-child(4),
+  .data-table.table-students td:nth-child(4) {
+    width: 28%;
+  }
 }
 
 .tag {

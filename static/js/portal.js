@@ -731,7 +731,7 @@ const STUDENT_TABLE_COLUMNS = [
       if (st.status !== "submitted") {
         return `<span class="muted">${escapeHtml(studentStatusLabel(st.status))}</span>`;
       }
-      const line = st.score_line || studentSubmissionLine(st);
+      const line = studentTableSubmissionLine(st);
       return `<strong class="cell-submission">${escapeHtml(line)}</strong>`;
     },
   },
@@ -782,7 +782,7 @@ function renderStudentResultsTable(students) {
     </button>`
       : "";
   return `<div class="student-table-wrap">
-    <div class="table-scroll">
+    <div class="student-table-scroll">
       <table class="data-table table-students">
         <thead><tr>${head}</tr></thead>
         <tbody>${renderTableBodyRows(columns, preview)}</tbody>
@@ -831,6 +831,16 @@ function studentSubmissionLine(st) {
   if (st.duration_label) parts.push(st.duration_label);
   if (st.finish_rank_label) parts.push(st.finish_rank_label);
   return parts.length ? parts.join(" · ") : studentStatusLabel(st.status);
+}
+
+/** Таблица учеников: отдельные колонки «Время» и «Выход» — здесь только результат. */
+function studentTableSubmissionLine(st) {
+  if (st.status !== "submitted") return studentStatusLabel(st.status);
+  if (st.score_line && /^\d+%/.test(String(st.score_line))) {
+    return String(st.score_line).split(" · ")[0];
+  }
+  if (st.score_percent != null) return `${st.score_percent}%`;
+  return studentStatusLabel(st.status);
 }
 
 function studentAttemptMeta(st) {
