@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="ru" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+  <title>Школьный портал</title>
+  <link rel="stylesheet" href="static/css/portal.css?v=37" />
+  <script>
+    (function () {
+      var t = localStorage.getItem("portal_theme");
+      if (t === "dark" || t === "light") document.documentElement.setAttribute("data-theme", t);
+    })();
+  </script>
+</head>
+<body>
+  <div class="portal" id="portal">
+    <section class="screen screen-auth" id="screen-auth">
+      <div class="auth-card">
+        <div class="auth-card-top">
+          <button type="button" class="btn-theme" id="btn-theme-auth" title="Сменить тему" aria-label="Сменить тему">
+            <span class="theme-icon" id="theme-icon-auth" aria-hidden="true">🌙</span>
+          </button>
+        </div>
+        <h1 class="school-title" id="landing-school-name">Школа</h1>
+        <p class="school-sub" id="landing-sub">Вход для администрации и учеников</p>
+        <form class="auth-form" id="auth-form" autocomplete="on">
+          <label class="field">
+            <span>Логин</span>
+            <input id="input-login" name="username" autocomplete="username" required />
+          </label>
+          <label class="field">
+            <span>Пароль</span>
+            <input id="input-password" name="password" type="password" autocomplete="current-password" required />
+          </label>
+          <p class="error" id="auth-error" hidden></p>
+          <button type="submit" class="btn-primary" id="btn-submit">Войти</button>
+        </form>
+      </div>
+    </section>
+
+    <section class="screen screen-app hidden" id="screen-app">
+      <header class="app-bar">
+        <div class="app-bar-head">
+          <p class="app-bar-school" id="app-school-name"></p>
+          <h2 class="app-bar-user" id="app-user-line"></h2>
+          <nav class="breadcrumbs" id="app-breadcrumbs" aria-label="Где вы находитесь"></nav>
+        </div>
+        <div class="app-bar-actions">
+          <button type="button" class="btn-theme" id="btn-theme-app" title="Сменить тему" aria-label="Сменить тему">
+            <span class="theme-icon" id="theme-icon-app" aria-hidden="true">🌙</span>
+          </button>
+          <button type="button" class="btn-ghost" id="btn-logout">Выйти</button>
+        </div>
+      </header>
+      <main class="app-main" id="app-main"></main>
+    </section>
+    <button type="button" class="btn-scroll-top" id="btn-scroll-top" aria-label="Наверх" title="Наверх">↑</button>
+
+    <div class="exam-guard-modal hidden" id="exam-guard-modal" role="alertdialog" aria-modal="true" aria-labelledby="exam-guard-title" aria-describedby="exam-guard-desc">
+      <div class="exam-guard-backdrop" id="exam-guard-backdrop"></div>
+      <div class="exam-guard-dialog panel">
+        <h3 id="exam-guard-title">Тест не завершён</h3>
+        <p id="exam-guard-desc">До окончания теста недоступны другие действия: не сворачивайте окно, не переключайте вкладки, не закрывайте страницу и не выходите из портала.</p>
+        <p class="exam-guard-reason muted" id="exam-guard-reason"></p>
+        <p class="muted exam-guard-count" id="exam-guard-count" hidden></p>
+        <button type="button" class="btn-primary" id="exam-guard-ok">Продолжить тест</button>
+      </div>
+    </div>
+  </div>
+  <script src="static/js/portal.js?v=39" type="module"></script>
+</body>
+</html>
