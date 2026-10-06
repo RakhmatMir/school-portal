@@ -112,6 +112,32 @@
       }
     ]
   },
+  "demo_users": [
+    {
+      "id": 1,
+      "login": "admin",
+      "password": "admin123",
+      "full_name": "Главный админ",
+      "role": "admin",
+      "class_name": null
+    },
+    {
+      "id": 2,
+      "login": "teacher",
+      "password": "teacher123",
+      "full_name": "Абдурашид (учитель)",
+      "role": "teacher",
+      "class_name": null
+    },
+    {
+      "id": 4,
+      "login": "student1",
+      "password": "student123",
+      "full_name": "Алиев Дилшод",
+      "role": "student",
+      "class_name": "6Б"
+    }
+  ],
   "demo_exam_answers": {
     "101:5": [1, 1, 1],
     "101:6": [1, 0, 2],

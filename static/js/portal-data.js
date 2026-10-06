@@ -3,6 +3,7 @@
 const PROBLEM_THRESHOLD = 40;
 const SUBMISSIONS_KEY = "portal_site_submissions_v1";
 const TEACHER_REPORTS_KEY = "portal_site_teacher_reports_v1";
+const DEMO_SESSION_KEY = "portal_demo_session_v1";
 
 let bundlePromise = null;
 
@@ -173,6 +174,50 @@ function parseBody(options) {
   } catch {
     return {};
   }
+}
+
+function publicUser(row) {
+  return {
+    id: row.id,
+    login: row.login,
+    full_name: row.full_name,
+    role: row.role,
+    class_name: row.class_name ?? null,
+    staff_title: row.staff_title ?? null,
+  };
+}
+
+/** Временный вход без Google (пока нет PORTAL_API_URL). Пароли в portal.json — только для демо. */
+export async function demoAuthApi(path, options = {}) {
+  const method = String(options.method || "GET").toUpperCase();
+  const bundle = await loadPortalBundle();
+
+  if (path === "/api/login" && method === "POST") {
+    const body = parseBody(options);
+    const login = String(body.login || "").trim();
+    const password = String(body.password || "");
+    const users = bundle.demo_users || [];
+    const found = users.find(
+      (u) => u.login.toLowerCase() === login.toLowerCase() && u.password === password
+    );
+    if (!found) throw new Error("invalid_credentials");
+    const session = { user: publicUser(found), school_name: bundle.school_name };
+    localStorage.setItem(DEMO_SESSION_KEY, JSON.stringify(session));
+    return session;
+  }
+
+  if (path === "/api/me" && method === "GET") {
+    const raw = localStorage.getItem(DEMO_SESSION_KEY);
+    if (!raw) throw new Error("not_authenticated");
+    return JSON.parse(raw);
+  }
+
+  if (path === "/api/logout" && method === "POST") {
+    localStorage.removeItem(DEMO_SESSION_KEY);
+    return { status: "ok" };
+  }
+
+  throw new Error("not_found");
 }
 
 function currentUser() {

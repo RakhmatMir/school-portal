@@ -1,4 +1,4 @@
-import { dataApi } from "./portal-data.js";
+import { dataApi, demoAuthApi } from "./portal-data.js";
 
 const $ = (id) => document.getElementById(id);
 
@@ -573,7 +573,7 @@ async function api(path, options = {}) {
   if (useSiteData()) {
     if (AUTH_API_PATHS.has(path)) {
       if (!getPortalApiUrl()) {
-        throw new Error(path === "/api/login" ? "portal_auth_url_missing" : "not_authenticated");
+        return demoAuthApi(path, options);
       }
       return apiRemote(path, options);
     }
@@ -2295,11 +2295,6 @@ async function renderDashboard(session) {
 }
 
 async function loadLanding() {
-  if (location.hostname.endsWith("github.io") && !getPortalApiUrl()) {
-    $("landing-sub").textContent =
-      "Укажите URL входа (Apps Script) в static/js/portal-config.js — см. google-sheets/GITHUB-PAGES-RU.md";
-    return;
-  }
   try {
     const data = await api("/api/public/landing");
     if (data.school_name) {

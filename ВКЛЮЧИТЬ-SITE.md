@@ -8,8 +8,9 @@
 2. **Build and deployment → Source:** выберите **GitHub Actions** (не «Deploy from branch»).  
 3. Сохраните. Зайдите в **Actions** → workflow **Deploy GitHub Pages** → **Run workflow** (или сделайте любой push в `main`).
 
-Сайт: **https://rakhmatmir.github.io/school-portal/**  
-(должна открыться форма входа; название школы — из `data/portal.json`).
+**https://rakhmatmir.github.io/school-portal/** — не открывайте просто `rakhmatmir.github.io` (будет 404).
+
+Пока без Google: `student1` / `student123`, `teacher` / `teacher123`, `admin` / `admin123`.
 
 ## 2. Вход через Google Таблицу
 
