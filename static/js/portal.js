@@ -1,3 +1,5 @@
+import { dataApi } from "./portal-data.js";
+
 const $ = (id) => document.getElementById(id);
 
 const ROLE_LABEL = {
@@ -28,6 +30,9 @@ const portalState = {
   studentExamReturnHome: false,
   staffTestsShortcut: false,
 };
+window.portalState = portalState;
+
+const AUTH_API_PATHS = new Set(["/api/login", "/api/logout", "/api/me"]);
 
 const NOTIFY_RECIPIENTS_KEY = "portal_demo_notify_v2";
 const NOTIFY_RECIPIENTS_MAX = 4;
@@ -496,8 +501,15 @@ async function loadStudentCompletedTests(fromSubjectsPayload) {
 const PORTAL_GAS_TOKEN_KEY = "portal_gs_token";
 
 function getPortalApiUrl() {
-  const url = String(window.PORTAL_API_URL || "").trim();
+  const url = String(window.PORTAL_API_URL || window.PORTAL_AUTH_URL || "").trim();
   return url || null;
+}
+
+function useSiteData() {
+  if (apiUsesGas()) return false;
+  return Boolean(
+    getPortalApiUrl() || location.hostname.endsWith("github.io") || window.PORTAL_USE_STATIC_DATA
+  );
 }
 
 function apiUsesGas() {
@@ -557,6 +569,15 @@ function apiGas(path, options = {}) {
 async function api(path, options = {}) {
   if (apiUsesGas()) {
     return apiGas(path, options);
+  }
+  if (useSiteData()) {
+    if (AUTH_API_PATHS.has(path)) {
+      if (!getPortalApiUrl()) {
+        throw new Error(path === "/api/login" ? "portal_auth_url_missing" : "not_authenticated");
+      }
+      return apiRemote(path, options);
+    }
+    return dataApi(path, options);
   }
   if (apiUsesRemote()) {
     return apiRemote(path, options);
@@ -2276,7 +2297,7 @@ async function renderDashboard(session) {
 async function loadLanding() {
   if (location.hostname.endsWith("github.io") && !getPortalApiUrl()) {
     $("landing-sub").textContent =
-      "Укажите URL API в static/js/portal-config.js (см. google-sheets/GITHUB-PAGES-RU.md)";
+      "Укажите URL входа (Apps Script) в static/js/portal-config.js — см. google-sheets/GITHUB-PAGES-RU.md";
     return;
   }
   try {
@@ -2285,13 +2306,26 @@ async function loadLanding() {
       $("landing-school-name").textContent = data.school_name;
     }
   } catch {
-    $("landing-sub").textContent = "Не удалось загрузить название школы — проверьте PORTAL_API_URL и развёртывание Apps Script";
+    $("landing-sub").textContent =
+      "Не удалось загрузить data/portal.json или API входа — проверьте GitHub Pages и portal-config.js";
   }
+}
+
+async function enrichSessionSchoolName(session) {
+  if (session.school_name) return session;
+  if (!useSiteData()) return session;
+  try {
+    const land = await dataApi("/api/public/landing");
+    session.school_name = land.school_name;
+  } catch {
+    session.school_name = "Школа";
+  }
+  return session;
 }
 
 async function tryRestoreSession() {
   try {
-    const session = await api("/api/me");
+    const session = await enrichSessionSchoolName(await api("/api/me"));
     await renderDashboard(session);
     return true;
   } catch {
@@ -2316,12 +2350,24 @@ $("auth-form").addEventListener("submit", async (e) => {
     if (raw.token) {
       localStorage.setItem(PORTAL_GAS_TOKEN_KEY, raw.token);
     }
-    const session = raw.token ? { user: raw.user, school_name: raw.school_name } : raw;
+    let session = raw.token ? { user: raw.user, school_name: raw.school_name } : raw;
+    if (!session.school_name && useSiteData()) {
+      try {
+        const land = await dataApi("/api/public/landing");
+        session.school_name = land.school_name;
+      } catch {
+        session.school_name = session.school_name || "Школа";
+      }
+    }
     await renderDashboard(session);
   } catch (err) {
-    setAuthError(
-      err.message === "invalid_credentials" ? "Неверный логин или пароль" : "Ошибка входа. Попробуйте снова."
-    );
+    const msg =
+      err.message === "invalid_credentials"
+        ? "Неверный логин или пароль"
+        : err.message === "portal_auth_url_missing"
+          ? "Настройте PORTAL_API_URL (вход через Google Таблицу)"
+          : "Ошибка входа. Попробуйте снова.";
+    setAuthError(msg);
   } finally {
     btn.disabled = false;
   }

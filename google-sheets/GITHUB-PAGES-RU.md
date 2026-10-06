@@ -1,70 +1,62 @@
-# Сайт на GitHub Pages + таблица как база
-
-Схема как у портфолио на GitHub:
+# GitHub Pages (сайт) + Google Таблица (только вход)
 
 | Что | Где |
 |-----|-----|
-| Интерфейс (HTML/CSS/JS) | **GitHub Pages** — `https://ВАШ_ЛОГИН.github.io/school-portal/` |
-| Данные | **Google Таблица** (листы `users`, `exams`, …) |
-| API (логин, тесты) | **Apps Script** — один URL `…/exec` |
+| **Сайт** (экраны, тесты, классы) | GitHub → `index.html`, `static/`, **`data/portal.json`** |
+| **Логин и пароль** | Google Таблица → лист **`users`** |
+| **Проверка пароля** | Apps Script → URL `…/exec` (только API входа) |
 
 Туннель не нужен.
 
 ---
 
-## Шаг 1. API в Google (таблица + скрипт)
+## 1. Таблица — только пользователи
 
 1. Таблица: https://docs.google.com/spreadsheets/d/1R7IwEg0gmvBnGal8oswynX6AdTTmGwezjx10BFWvHuw/edit  
-2. **Расширения → Apps Script** → вставьте **`Code.gs`** из репозитория (достаточно одного файла `Code.gs` для API; HTML-файлы WebApp нужны только если хотите открывать сайт с `script.google.com`).  
-3. Запустите **`initializeSheets`**.  
+2. **Расширения → Apps Script** → вставьте **`Code.gs`** из репозитория.  
+3. Запустите **`initializeSheets`** — появится лист **`users`** с колонками:
+
+| login | password | role | full_name | class_name | id |
+|-------|----------|------|-----------|------------|-----|
+
+Роль: `admin`, `teacher` или `student`. Для ученика укажите класс (например `6Б`).
+
 4. **Развернуть → Новое развёртывание → Веб-приложение**  
    - Выполнять от имени: **Я**  
    - Доступ: **Все**  
-5. Скопируйте **URL веб-приложения** (`https://script.google.com/macros/s/…/exec`).
+5. Скопируйте **URL веб-приложения** (`…/exec`).
 
-Проверка API в браузере (должен вернуть JSON):
-
-`https://script.google.com/macros/s/ВАШ_ID/exec?api=1&path=/api/public/landing&method=GET`
+Проверка (в браузере не обязательна): API отвечает только на `/api/login`, `/api/me`, `/api/logout`.
 
 ---
 
-## Шаг 2. GitHub Pages (фронтенд)
+## 2. GitHub — весь контент портала
 
-1. В репозитории на GitHub: **Settings → Pages**  
-   - Source: **GitHub Actions** (workflow `Deploy GitHub Pages` уже в репозитории)  
-   - либо ветка **main**, папка **/ (root)**  
-2. В файле **`static/js/portal-config.js`** укажите URL из шага 1:
+1. Редактируйте **`data/portal.json`** в репозитории: название школы, классы, предметы, экзамены, вопросы.  
+2. В **`static/js/portal-config.js`**:
 
 ```javascript
 window.PORTAL_API_URL = "https://script.google.com/macros/s/ВАШ_ID/exec";
 ```
 
-3. Закоммитьте и запушьте в **main**.  
-4. Через 1–2 минуты откройте сайт:  
-   `https://ВАШ_ЛОГИН.github.io/school-portal/`  
-   (имя папки = имя репозитория, если не настроен custom domain).
+3. Push в **main** → GitHub Pages (workflow в `.github/workflows/pages.yml`).  
+4. Сайт: `https://ВАШ_ЛОГИН.github.io/school-portal/`
+
+Сдачи тестов сохраняются **в браузере** (localStorage), не в таблице.
 
 ---
 
-## Шаг 3. Логины
+## 3. Локальная разработка
 
-После `initializeSheets` — как в [SETUP-RU.md](SETUP-RU.md): `admin` / `teacher` / `student1`.
-
----
-
-## Обновление
-
-- Поменяли дизайн/JS → push в GitHub (Pages обновится).  
-- Поменяли логику API → обновите `Code.gs` в Apps Script → **Новая версия** развёртывания.  
-- Поменяли данные → правьте листы в таблице.
+- `PORTAL_API_URL` пустой + `./run.sh` — полный демо-сервер на :8080 (всё в памяти).  
+- Или укажите `PORTAL_API_URL` и откройте сайт локально через простой HTTP-сервер — данные из `data/portal.json`, вход из таблицы.
 
 ---
 
 ## Ошибки
 
-| Симптом | Что сделать |
-|---------|-------------|
-| «Файл не обнаружен» на script.google.com | Неверный URL; нужен именно **/exec** после развёртывания |
-| На GitHub пусто / не грузится школа | Проверьте `PORTAL_API_URL` в `portal-config.js` |
-| CORS / сеть в консоли | У Web App доступ **Все**; URL без лишних пробелов |
-| Локально `./run.sh` | Оставьте `PORTAL_API_URL = ""` — работает FastAPI на :8080 |
+| Симптом | Решение |
+|---------|---------|
+| «Файл не обнаружен» на script.google.com | Нужен URL после **Развернуть**, с **`/exec`** |
+| Школа не грузится на GitHub | Проверьте, что в Pages попала папка **`data/`** |
+| Не входит | Логин/пароль на листе `users`, `PORTAL_API_URL` в config |

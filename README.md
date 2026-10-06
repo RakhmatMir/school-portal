@@ -7,15 +7,12 @@
 
 ---
 
-## Рекомендуемый способ (как портфолио на GitHub + таблица как БД)
+## Рекомендуемый способ (GitHub + таблица только для входа)
 
-1. **Сайт** — GitHub Pages (`index.html` + `static/`)  
-2. **Данные** — Google Таблица  
-3. **API** — Apps Script (`Code.gs`), один URL `…/exec`  
-4. Инструкция: **[google-sheets/GITHUB-PAGES-RU.md](google-sheets/GITHUB-PAGES-RU.md)**  
-5. В `static/js/portal-config.js` укажите `PORTAL_API_URL` после развёртывания скрипта.
-
-Альтернатива (всё на Google одной ссылкой): **[google-sheets/SETUP-RU.md](google-sheets/SETUP-RU.md)** — WebApp + HTML-вложения.
+1. **Сайт и контент** — GitHub Pages: `index.html`, `static/`, **`data/portal.json`** (классы, тесты, вопросы).  
+2. **Логин и пароль** — лист **`users`** в Google Таблице.  
+3. **Проверка входа** — Apps Script `Code.gs` → URL в `static/js/portal-config.js`.  
+4. Инструкция: **[google-sheets/GITHUB-PAGES-RU.md](google-sheets/GITHUB-PAGES-RU.md)**.
 
 ---
 

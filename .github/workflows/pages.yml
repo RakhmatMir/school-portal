@@ -28,6 +28,7 @@ jobs:
           path: |
             index.html
             static
+            data
             .nojekyll
       - id: deployment
         uses: actions/deploy-pages@v4

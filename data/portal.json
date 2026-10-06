@@ -1,0 +1,121 @@
+{
+  "school_name": "Foundation School — демо",
+  "classes": [
+    { "class_name": "6Б", "student_count": 24, "test_count": 5 },
+    { "class_name": "7-A", "student_count": 22, "test_count": 4 },
+    { "class_name": "8-A", "student_count": 26, "test_count": 6 }
+  ],
+  "subjects": [
+    { "code": "math", "title": "Математика", "test_count": 2 },
+    { "code": "english", "title": "Английский язык", "test_count": 2 },
+    { "code": "physics", "title": "Физика", "test_count": 1 }
+  ],
+  "exams": [
+    {
+      "id": 101,
+      "class_name": "6Б",
+      "subject_code": "math",
+      "subject_title": "Математика",
+      "title": "Контрольная №2 — дроби",
+      "control_date": "04.10.2026",
+      "duration_minutes": 13,
+      "kind_label": "Контрольная",
+      "phase": "active",
+      "catalog_key": "todo",
+      "question_count": 3,
+      "questions": [
+        { "text": "Сколько будет 12 + 8?", "options": ["18", "20", "21", "19"], "correct_index": 1 },
+        {
+          "text": "Choose the correct form: She ___ to school every day.",
+          "options": ["go", "goes", "going", "gone"],
+          "correct_index": 1
+        },
+        {
+          "text": "Единица силы в SI — это…",
+          "options": ["Джоуль", "Ньютон", "Паскаль", "Ватт"],
+          "correct_index": 1
+        }
+      ]
+    },
+    {
+      "id": 102,
+      "class_name": "6Б",
+      "subject_code": "english",
+      "subject_title": "Английский язык",
+      "title": "Unit 5 — Grammar",
+      "control_date": "01.10.2026",
+      "duration_minutes": 15,
+      "kind_label": "Тест",
+      "phase": "done",
+      "catalog_key": "done",
+      "question_count": 3,
+      "questions": [
+        { "text": "Сколько будет 12 + 8?", "options": ["18", "20", "21", "19"], "correct_index": 1 },
+        {
+          "text": "Choose the correct form: She ___ to school every day.",
+          "options": ["go", "goes", "going", "gone"],
+          "correct_index": 1
+        },
+        {
+          "text": "Единица силы в SI — это…",
+          "options": ["Джоуль", "Ньютон", "Паскаль", "Ватт"],
+          "correct_index": 1
+        }
+      ]
+    },
+    {
+      "id": 103,
+      "class_name": "7-A",
+      "subject_code": "math",
+      "subject_title": "Математика",
+      "title": "Алгебра — линейные уравнения",
+      "control_date": "03.10.2026",
+      "duration_minutes": 20,
+      "kind_label": "Самостоятельная",
+      "phase": "active",
+      "catalog_key": "todo",
+      "question_count": 3,
+      "questions": [
+        { "text": "Сколько будет 12 + 8?", "options": ["18", "20", "21", "19"], "correct_index": 1 },
+        {
+          "text": "Choose the correct form: She ___ to school every day.",
+          "options": ["go", "goes", "going", "gone"],
+          "correct_index": 1
+        },
+        {
+          "text": "Единица силы в SI — это…",
+          "options": ["Джоуль", "Ньютон", "Паскаль", "Ватт"],
+          "correct_index": 1
+        }
+      ]
+    }
+  ],
+  "rosters": {
+    "6Б": [
+      { "id": 4, "full_name": "Алиев Дилшод", "status": "not_started", "score_percent": null },
+      {
+        "id": 5,
+        "full_name": "Karimova Malika",
+        "status": "submitted",
+        "score_percent": 88,
+        "duration_label": "11:20",
+        "exit_intent_count": 0
+      },
+      {
+        "id": 6,
+        "full_name": "Rustamov Bek",
+        "status": "submitted",
+        "score_percent": 72,
+        "duration_label": "12:05",
+        "exit_intent_count": 1,
+        "exit_intent_label": "1 раз"
+      }
+    ]
+  },
+  "demo_exam_answers": {
+    "101:5": [1, 1, 1],
+    "101:6": [1, 0, 2],
+    "102:5": [1, 1, 1],
+    "102:6": [1, 1, 0]
+  }
+}
