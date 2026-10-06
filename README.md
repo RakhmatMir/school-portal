@@ -7,11 +7,12 @@
 
 ---
 
-## Рекомендуемый способ (Google)
+## Рекомендуемый способ (постоянный сайт без туннеля)
 
-1. Таблица «Школьный портал» + Apps Script  
-2. Инструкция: **[google-sheets/SETUP-RU.md](google-sheets/SETUP-RU.md)**  
-3. Файлы: `google-sheets/Code.gs`, `google-sheets/WebApp.html`
+1. Таблица «Школьный портал» + Apps Script Web App  
+2. Пошагово: **[google-sheets/SETUP-RU.md](google-sheets/SETUP-RU.md)**  
+3. В Apps Script: `Code.gs`, `WebApp`, `PortalStyles`, `PortalScript` (после правок UI: `python3 google-sheets/build_gas_assets.py`)  
+4. Ссылка вида `https://script.google.com/macros/s/…/exec` — для учеников и учителей, как у портфолио на Google.
 
 ---
 

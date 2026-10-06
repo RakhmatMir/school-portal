@@ -1,288 +1,74 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="ru" data-theme="light">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <title>Школьный портал</title>
-  <style>
-    :root {
-      --bg: #f4f6fb;
-      --card: #fff;
-      --text: #1a2332;
-      --muted: #5c6b80;
-      --border: #d8dee9;
-      --accent: #2563eb;
-      --warn: #fef3c7;
-      --radius: 14px;
-    }
-    [data-theme="dark"] {
-      --bg: #0f1419;
-      --card: #1a2332;
-      --text: #e8eef7;
-      --muted: #94a3b8;
-      --border: #2d3a4d;
-      --accent: #60a5fa;
-    }
-    * { box-sizing: border-box; }
-    body {
-      margin: 0;
-      font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
-      background: var(--bg);
-      color: var(--text);
-      min-height: 100vh;
-    }
-    .wrap { max-width: 520px; margin: 0 auto; padding: 20px 16px 40px; }
-    .panel {
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      padding: 20px;
-      margin-bottom: 16px;
-    }
-    h1 { font-size: 1.35rem; margin: 0 0 8px; }
-    h2 { font-size: 1.05rem; margin: 0 0 12px; }
-    .sub { color: var(--muted); font-size: 0.9rem; margin: 0 0 20px; }
-    label { display: block; font-size: 0.85rem; margin-bottom: 6px; color: var(--muted); }
-    input {
-      width: 100%;
-      padding: 12px 14px;
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      font-size: 1rem;
-      background: var(--bg);
-      color: var(--text);
-      margin-bottom: 14px;
-    }
-    .btn {
-      width: 100%;
-      padding: 14px;
-      border: none;
-      border-radius: 10px;
-      background: var(--accent);
-      color: #fff;
-      font-size: 1rem;
-      font-weight: 600;
-      cursor: pointer;
-    }
-    .btn:disabled { opacity: 0.6; }
-    .btn-ghost {
-      background: transparent;
-      color: var(--muted);
-      border: 1px solid var(--border);
-      width: auto;
-      padding: 8px 14px;
-      margin-top: 8px;
-    }
-    .error { color: #dc2626; font-size: 0.9rem; margin-bottom: 12px; }
-    .hidden { display: none !important; }
-    .bar {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      gap: 12px;
-      margin-bottom: 16px;
-    }
-    .badge {
-      display: inline-block;
-      font-size: 0.75rem;
-      padding: 4px 10px;
-      border-radius: 999px;
-      background: color-mix(in srgb, var(--accent) 15%, transparent);
-      color: var(--accent);
-      margin-bottom: 8px;
-    }
-    ul { list-style: none; padding: 0; margin: 0; }
-    .row-link {
-      display: flex;
-      justify-content: space-between;
-      padding: 14px 0;
-      border-bottom: 1px solid var(--border);
-      cursor: default;
-    }
-    .row-link:last-child { border-bottom: none; }
-    .muted { color: var(--muted); font-size: 0.88rem; }
-    .top-actions { text-align: right; }
-    .theme-btn {
-      border: 1px solid var(--border);
-      background: var(--card);
-      border-radius: 8px;
-      padding: 6px 10px;
-      cursor: pointer;
-    }
-  </style>
+  <?!= include('PortalStyles'); ?>
+  <script>
+    (function () {
+      var t = localStorage.getItem("portal_theme");
+      if (t === "dark" || t === "light") document.documentElement.setAttribute("data-theme", t);
+    })();
+    window.PORTAL_USE_GAS = true;
+  </script>
 </head>
 <body>
-  <div class="wrap">
-    <section id="screen-auth">
-      <div class="panel">
-        <div class="top-actions">
-          <button type="button" class="theme-btn" id="btn-theme-auth" title="Тема">🌙</button>
+  <div class="portal" id="portal">
+    <section class="screen screen-auth" id="screen-auth">
+      <div class="auth-card">
+        <div class="auth-card-top">
+          <button type="button" class="btn-theme" id="btn-theme-auth" title="Сменить тему" aria-label="Сменить тему">
+            <span class="theme-icon" id="theme-icon-auth" aria-hidden="true">🌙</span>
+          </button>
         </div>
-        <h1 id="landing-school">Школа</h1>
-        <p class="sub">Вход для администрации и учеников</p>
-        <form id="auth-form">
-          <label>Логин</label>
-          <input id="input-login" autocomplete="username" required />
-          <label>Пароль</label>
-          <input id="input-password" type="password" autocomplete="current-password" required />
-          <p class="error hidden" id="auth-error"></p>
-          <button type="submit" class="btn" id="btn-login">Войти</button>
+        <h1 class="school-title" id="landing-school-name">Школа</h1>
+        <p class="school-sub" id="landing-sub">Вход для администрации и учеников</p>
+        <form class="auth-form" id="auth-form" autocomplete="on">
+          <label class="field">
+            <span>Логин</span>
+            <input id="input-login" name="username" autocomplete="username" required />
+          </label>
+          <label class="field">
+            <span>Пароль</span>
+            <input id="input-password" name="password" type="password" autocomplete="current-password" required />
+          </label>
+          <p class="error" id="auth-error" hidden></p>
+          <button type="submit" class="btn-primary" id="btn-submit">Войти</button>
         </form>
       </div>
     </section>
 
-    <section id="screen-app" class="hidden">
-      <div class="bar">
-        <div>
-          <p class="muted" id="app-school" style="margin:0;font-size:0.8rem;text-transform:uppercase"></p>
-          <h1 id="app-user" style="font-size:1.1rem;margin:4px 0 0"></h1>
+    <section class="screen screen-app hidden" id="screen-app">
+      <header class="app-bar">
+        <div class="app-bar-head">
+          <p class="app-bar-school" id="app-school-name"></p>
+          <h2 class="app-bar-user" id="app-user-line"></h2>
+          <nav class="breadcrumbs" id="app-breadcrumbs" aria-label="Где вы находитесь"></nav>
         </div>
-        <div>
-          <button type="button" class="theme-btn" id="btn-theme-app">🌙</button>
+        <div class="app-bar-actions">
+          <button type="button" class="btn-theme" id="btn-theme-app" title="Сменить тему" aria-label="Сменить тему">
+            <span class="theme-icon" id="theme-icon-app" aria-hidden="true">🌙</span>
+          </button>
           <button type="button" class="btn-ghost" id="btn-logout">Выйти</button>
         </div>
-      </div>
-      <div id="app-main"></div>
+      </header>
+      <main class="app-main" id="app-main"></main>
     </section>
+    <button type="button" class="btn-scroll-top" id="btn-scroll-top" aria-label="Наверх" title="Наверх">↑</button>
+
+    <div class="exam-guard-modal hidden" id="exam-guard-modal" role="alertdialog" aria-modal="true" aria-labelledby="exam-guard-title" aria-describedby="exam-guard-desc">
+      <div class="exam-guard-backdrop" id="exam-guard-backdrop"></div>
+      <div class="exam-guard-dialog panel">
+        <h3 id="exam-guard-title">Тест не завершён</h3>
+        <p id="exam-guard-desc">До окончания теста недоступны другие действия: не сворачивайте окно, не переключайте вкладки, не закрывайте страницу и не выходите из портала.</p>
+        <p class="exam-guard-reason muted" id="exam-guard-reason"></p>
+        <p class="muted exam-guard-count" id="exam-guard-count" hidden></p>
+        <button type="button" class="btn-primary" id="exam-guard-ok">Продолжить тест</button>
+      </div>
+    </div>
   </div>
-
-  <script>
-    const TOKEN_KEY = 'portal_gs_token';
-
-    function $(id) { return document.getElementById(id); }
-
-    function gs(fn, ...args) {
-      return new Promise((resolve, reject) => {
-        google.script.run
-          .withSuccessHandler(resolve)
-          .withFailureHandler((err) => reject(new Error(err.message || String(err))))
-          [fn](...args);
-      });
-    }
-
-    function getTheme() {
-      return localStorage.getItem('portal_theme') === 'dark' ? 'dark' : 'light';
-    }
-    function applyTheme() {
-      const dark = getTheme() === 'dark';
-      document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
-      const icon = dark ? '☀️' : '🌙';
-      $('btn-theme-auth').textContent = icon;
-      $('btn-theme-app').textContent = icon;
-    }
-    function toggleTheme() {
-      localStorage.setItem('portal_theme', getTheme() === 'dark' ? 'light' : 'dark');
-      applyTheme();
-    }
-
-    function showAuth() {
-      $('screen-auth').classList.remove('hidden');
-      $('screen-app').classList.add('hidden');
-    }
-    function showApp() {
-      $('screen-auth').classList.add('hidden');
-      $('screen-app').classList.remove('hidden');
-    }
-
-    function setAuthError(msg) {
-      const el = $('auth-error');
-      if (!msg) { el.classList.add('hidden'); el.textContent = ''; return; }
-      el.textContent = msg;
-      el.classList.remove('hidden');
-    }
-
-    const ROLE_LABEL = { admin: 'Администратор', teacher: 'Учитель', student: 'Ученик' };
-
-    async function renderAdmin(session) {
-      const classes = await gs('apiPortalClasses', session.token);
-      const rows = classes.length
-        ? classes.map((c) => `<li class="row-link"><span>${escapeHtml(c.class_name)}</span><span class="muted">${c.student_count} уч. · ${c.test_count} тест.</span></li>`).join('')
-        : '<li class="muted">Добавьте классы на листе classes</li>';
-      $('app-main').innerHTML = `
-        <span class="badge">${escapeHtml(ROLE_LABEL[session.user.role] || session.user.role)}</span>
-        <div class="panel">
-          <h2>${escapeHtml(session.school_name)}</h2>
-          <p class="sub" style="margin-bottom:0">Классы — данные из Google Таблицы</p>
-        </div>
-        <div class="panel">
-          <h2>Классы</h2>
-          <ul>${rows}</ul>
-        </div>
-        <p class="muted">Тесты и аналитика — следующий этап. Сейчас: вход и списки из таблицы.</p>`;
-    }
-
-    async function renderStudent(session) {
-      $('app-main').innerHTML = `
-        <span class="badge">${escapeHtml(ROLE_LABEL.student)}</span>
-        <div class="panel">
-          <h2>${escapeHtml(session.user.full_name)}</h2>
-          <p class="sub">${escapeHtml(session.school_name)} · класс ${escapeHtml(session.user.class_name || '—')}</p>
-        </div>
-        <p class="muted">Предметы и тесты подключим на следующем шаге.</p>`;
-    }
-
-    async function renderDashboard(session) {
-      $('app-school').textContent = session.school_name || '';
-      $('app-user').textContent = `${session.user.full_name} · ${ROLE_LABEL[session.user.role] || session.user.role}`;
-      showApp();
-      if (session.user.role === 'admin' || session.user.role === 'teacher') {
-        await renderAdmin(session);
-      } else {
-        await renderStudent(session);
-      }
-    }
-
-    function escapeHtml(s) {
-      return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
-    }
-
-    async function tryRestore() {
-      const token = localStorage.getItem(TOKEN_KEY);
-      if (!token) return;
-      try {
-        const session = await gs('apiMe', token);
-        session.token = token;
-        await renderDashboard(session);
-      } catch {
-        localStorage.removeItem(TOKEN_KEY);
-        showAuth();
-      }
-    }
-
-    $('auth-form').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      setAuthError('');
-      $('btn-login').disabled = true;
-      try {
-        const res = await gs('apiLogin', $('input-login').value.trim(), $('input-password').value);
-        localStorage.setItem(TOKEN_KEY, res.token);
-        await renderDashboard(res);
-      } catch (err) {
-        setAuthError(err.message === 'invalid_credentials' ? 'Неверный логин или пароль' : 'Ошибка входа');
-      } finally {
-        $('btn-login').disabled = false;
-      }
-    });
-
-    $('btn-logout').addEventListener('click', async () => {
-      const token = localStorage.getItem(TOKEN_KEY);
-      try { await gs('apiLogout', token); } catch (_) {}
-      localStorage.removeItem(TOKEN_KEY);
-      $('input-password').value = '';
-      showAuth();
-    });
-
-    $('btn-theme-auth').addEventListener('click', toggleTheme);
-    $('btn-theme-app').addEventListener('click', toggleTheme);
-
-    (async () => {
-      applyTheme();
-      try {
-        const land = await gs('apiPublicLanding');
-        if (land.school_name) $('landing-school').textContent = land.school_name;
-      } catch (_) {}
-      await tryRestore();
-    })();
-  </script>
+  <?!= include('PortalScript'); ?>
 </body>
 </html>
