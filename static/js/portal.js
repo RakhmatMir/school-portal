@@ -2177,6 +2177,14 @@ function renderTeacherExamLivePreviewHtml(examMeta, questions) {
   });
 }
 
+function subjectCodeForBundleExam(exam, subjects) {
+  if (exam?.subject_code) return exam.subject_code;
+  const title = exam?.subject_title;
+  if (!title) return "";
+  const sub = (subjects || []).find((s) => s.title === title);
+  return sub?.code || "";
+}
+
 function renderAdminClassHubPanel(className, schedule, bundleData, subjects) {
   const sch = schedule || bundleData?.schedule || { total_minutes: 45, test_count: 3, minutes_per_test: 15 };
   const perTest =
@@ -2184,20 +2192,28 @@ function renderAdminClassHubPanel(className, schedule, bundleData, subjects) {
   const count = sch.test_count ?? (bundleData?.exams?.length || 3);
   const exams = bundleData?.exams || [];
   const published = Boolean(bundleData?.bundle_published);
-  const examList = exams
-    .map(
-      (ex, i) =>
-        `<li><span class="row-link-main">${i + 1}. ${escapeHtml(ex.subject_title || "")}</span> <span class="muted">${escapeHtml(ex.title)}</span></li>`
-    )
-    .join("");
-  const subjectRows = (subjects || [])
-    .map(
-      (s) => `<li class="row-link" role="button" tabindex="0" data-subject-code="${escapeHtml(s.code)}">
-      <span class="row-link-main">${escapeHtml(s.title)}</span>
+  const bundleRows = exams.length
+    ? exams
+        .map((ex, i) => {
+          const code = subjectCodeForBundleExam(ex, subjects);
+          const codeAttr = code ? ` data-subject-code="${escapeHtml(code)}"` : "";
+          const interactive = code
+            ? ` class="row-link" role="button" tabindex="0"${codeAttr}`
+            : "";
+          return `<li${interactive}>
+      <span class="row-link-main">${i + 1}. ${escapeHtml(ex.subject_title || "")}</span>
+      <span class="muted admin-bundle-exam-title">${escapeHtml(ex.title || "")}</span>
+    </li>`;
+        })
+        .join("")
+    : (subjects || [])
+        .map(
+          (s, i) => `<li class="row-link" role="button" tabindex="0" data-subject-code="${escapeHtml(s.code)}">
+      <span class="row-link-main">${i + 1}. ${escapeHtml(s.title)}</span>
       <span class="muted">${s.test_count} тест.</span>
     </li>`
-    )
-    .join("");
+        )
+        .join("");
   return `<section class="panel panel-admin-class-hub panel-admin-tests" id="admin-tests-panel">
     <h3 class="class-detail-title">Класс ${escapeHtml(className)}</h3>
     <p class="lead muted">Тесты сдаются подряд: математика → русский → английский.</p>
@@ -2212,16 +2228,13 @@ function renderAdminClassHubPanel(className, schedule, bundleData, subjects) {
       <p class="muted" id="admin-timing-preview" data-test-count="${count}"></p>
       <p class="muted admin-timing-msg" id="admin-timing-msg" hidden></p>
     </div>
-    <ol class="list-plain admin-bundle-order">${examList}</ol>
+    <p class="muted admin-bundle-hint">Нажмите строку, чтобы открыть и проверить вопросы теста.</p>
+    <ul class="list-plain admin-bundle-order admin-class-subjects">${bundleRows}</ul>
     <p class="muted admin-tests-status">Статус: <strong>${published ? "опубликованы для учеников" : "ещё не опубликованы"}</strong></p>
     <div class="admin-tests-publish-row">
       <button type="button" class="btn-primary" id="btn-publish-exam-bundle"${published ? " hidden" : ""}>Опубликовать для учеников</button>
     </div>
     <p class="muted admin-bundle-msg" id="admin-bundle-msg" hidden></p>
-    <div class="admin-class-hub-divider" role="separator"></div>
-    <h4 class="admin-class-hub-subhead">Проверка вопросов по предметам</h4>
-    <p class="muted admin-class-hub-hint">Откройте предмет, чтобы исправить текст теста.</p>
-    <ul class="list-plain admin-class-subjects">${subjectRows}</ul>
   </section>`;
 }
 

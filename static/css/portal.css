@@ -1181,6 +1181,18 @@ li.student-row .student-row-meta {
   margin: 12px 0;
 }
 
+.panel-admin-class-hub .admin-bundle-hint {
+  margin: 0 0 8px;
+}
+
+.panel-admin-class-hub .admin-bundle-exam-title {
+  text-align: right;
+  max-width: min(52%, 22rem);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .panel-admin-tests .admin-tests-publish-row {
   margin-top: 16px;
 }
