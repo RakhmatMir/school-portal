@@ -95,8 +95,13 @@ function isStaffRole(role) {
   return role === "admin" || role === "teacher";
 }
 
-function isExamPublishedToStudents(examId) {
+function isExamPublishedToStudents(bundle, examId) {
+  const base = examById(bundle, examId);
+  if (base?.published_to_students === true) return true;
   const draft = getExamDraft(examId);
+  if (base?.requires_teacher_publish) {
+    return Boolean(draft?.published);
+  }
   if (!draft) return true;
   return Boolean(draft.published);
 }
@@ -151,19 +156,26 @@ function testsForClassSubject(bundle, className, subjectCode) {
 }
 
 function staffTestsList(bundle) {
-  return bundle.exams.map((ex) => ({
-    id: ex.id,
-    class_name: ex.class_name,
-    subject_code: ex.subject_code,
-    subject_title: ex.subject_title,
-    title: ex.title,
-    control_date: ex.control_date,
-    kind_label: ex.kind_label,
-    catalog_key: ex.catalog_key,
-    question_count: ex.question_count,
-    submitted_count: 0,
-    class_total: rosterSize(bundle, ex.class_name),
-  }));
+  return bundle.exams.map((ex) => {
+    const published = isExamPublishedToStudents(bundle, ex.id);
+    const awaitingSite =
+      ex.requires_teacher_publish && ex.published_to_students !== true;
+    return {
+      id: ex.id,
+      class_name: ex.class_name,
+      subject_code: ex.subject_code,
+      subject_title: ex.subject_title,
+      title: ex.title,
+      control_date: ex.control_date,
+      kind_label: ex.kind_label,
+      catalog_key: ex.catalog_key,
+      question_count: ex.question_count,
+      submitted_count: 0,
+      class_total: rosterSize(bundle, ex.class_name),
+      published_to_students: published,
+      awaiting_site_publish: awaitingSite,
+    };
+  });
 }
 
 function classRoster(bundle, className) {
@@ -498,7 +510,7 @@ export async function dataApi(path, options = {}) {
     const tests = testsForClassSubject(bundle, cls, code);
     if (user.role === "student") {
       for (const t of tests) {
-        const published = isExamPublishedToStudents(t.id);
+        const published = isExamPublishedToStudents(bundle, t.id);
         const sub = getSubmission(submissions, t.id, user.id);
         const released = examResultsReleased(bundle, t.id, submissions);
         t.published_to_students = published;
@@ -549,7 +561,7 @@ export async function dataApi(path, options = {}) {
       results_released: resultsReleased,
       teacher_report_sent: teacherReports.has(examId),
       exam_editor: {
-        published: isExamPublishedToStudents(examId),
+        published: isExamPublishedToStudents(bundle, examId),
         has_draft: Boolean(draft?.questions?.length),
         updated_at: draft?.updated_at || null,
       },
@@ -615,7 +627,7 @@ export async function dataApi(path, options = {}) {
         score_percent: null,
       };
     }
-    if (!isExamPublishedToStudents(examId)) {
+    if (!isExamPublishedToStudents(bundle, examId)) {
       throw new Error("exam_not_published");
     }
     const sub = getSubmission(submissions, examId, user.id);
@@ -651,7 +663,7 @@ export async function dataApi(path, options = {}) {
   if (m && method === "POST") {
     if (!user || user.role !== "student") throw new Error("forbidden");
     const examId = Number(m[1]);
-    if (!isExamPublishedToStudents(examId)) throw new Error("exam_not_published");
+    if (!isExamPublishedToStudents(bundle, examId)) throw new Error("exam_not_published");
     const ex = examRecord(bundle, examId, user.role);
     if (!ex) throw new Error("exam_not_found");
     const body = parseBody(options);

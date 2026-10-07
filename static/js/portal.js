@@ -1738,7 +1738,13 @@ function renderStaffHomeTestRows(tests, poolKey) {
     .map((t, idx) => {
       const n = t.submitted_count ?? 0;
       const total = t.class_total ?? 0;
-      const sub = total ? `${n}/${total} сдали · ${t.kind_label || testListMeta(t)}` : testListMeta(t);
+      const pubNote =
+        t.awaiting_site_publish && !t.published_to_students
+          ? " · проверка перед учениками"
+          : "";
+      const sub = total
+        ? `${n}/${total} сдали · ${t.kind_label || testListMeta(t)}${pubNote}`
+        : `${testListMeta(t)}${pubNote}`;
       const mainLine = [t.class_name, t.subject_title || t.subject_code, t.title]
         .filter(Boolean)
         .map(escapeHtml)
@@ -2075,10 +2081,58 @@ async function fetchExamPreview(examId) {
 
 const EXAM_EDITOR_LETTERS = ["A", "B", "C", "D", "E", "F"];
 
-function renderTeacherExamEditorPanel(questions, editorMeta) {
+function teacherExamPreviewPayload(examMeta, questions) {
+  return {
+    exam: {
+      title: examMeta?.title || "Тест",
+      catalog_key: "todo",
+      duration_minutes: examMeta?.duration_minutes,
+      subject_title: examMeta?.subject_title,
+    },
+    questions,
+    show_answers: true,
+    submitted: false,
+    score_percent: null,
+  };
+}
+
+function renderTeacherExamLivePreviewHtml(examMeta, questions) {
+  const preview = teacherExamPreviewPayload(examMeta, questions);
+  return renderDemoTestPanel(preview, {
+    interactive: false,
+    title: "Просмотр на месте",
+    innerOnly: true,
+  });
+}
+
+function downloadPortalExamPatch(examMeta, questions) {
+  const patch = {
+    _comment:
+      "Вставьте поля questions и published_to_students в объект exam с id " +
+      examMeta.id +
+      " в data/portal.json, затем загрузите файл на GitHub.",
+    id: examMeta.id,
+    published_to_students: true,
+    question_count: questions.length,
+    questions,
+  };
+  const blob = new Blob([JSON.stringify(patch, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `exam-${examMeta.id}-publish.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function renderTeacherExamEditorPanel(questions, editorMeta, examMeta) {
   const published = editorMeta?.published !== false;
+  const needsSitePublish = Boolean(examMeta?.requires_teacher_publish && !examMeta?.published_to_students);
   const badgeClass = published ? "tag tag-ok" : "tag tag-warn";
-  const badgeText = published ? "Опубликован для учеников" : "Черновик — ученики не видят";
+  let badgeText = published ? "Опубликован для учеников" : "Черновик — ученики не видят";
+  if (needsSitePublish && published) {
+    badgeText = "На этом устройстве — скачайте JSON для всех учеников";
+  }
   const cards = questions
     .map((q, qi) => {
       const opts = (q.options || []).slice(0, 6);
@@ -2109,11 +2163,20 @@ function renderTeacherExamEditorPanel(questions, editorMeta) {
       <h3>Проверка теста перед учениками</h3>
       <span class="${badgeClass}" id="exam-publish-badge">${escapeHtml(badgeText)}</span>
     </div>
-    <p class="lead muted">Исправьте опечатки и варианты ответов. Сохраните черновик, затем нажмите «Опубликовать» — только после этого ученики смогут сдать тест (в этом браузере/на этом устройстве).</p>
-    <div class="teacher-q-edit-list">${cards}</div>
-    <div class="teacher-exam-editor-actions">
-      <button type="button" class="btn-secondary" id="btn-save-exam-draft">Сохранить черновик</button>
-      <button type="button" class="btn-primary" id="btn-publish-exam">Опубликовать для учеников</button>
+    <p class="lead muted">Исправьте опечатки прямо здесь — справа сразу видно, как тест увидят ученики. Сохраните черновик, затем «Опубликовать». Чтобы открыть сдачу на всех телефонах и компьютерах, скачайте файл для <code>portal.json</code> и обновите его на GitHub.</p>
+    <div class="teacher-exam-editor-layout">
+      <div class="teacher-exam-editor-main">
+        <div class="teacher-q-edit-list">${cards}</div>
+        <div class="teacher-exam-editor-actions">
+          <button type="button" class="btn-secondary" id="btn-save-exam-draft">Сохранить черновик</button>
+          <button type="button" class="btn-primary" id="btn-publish-exam">Опубликовать для учеников</button>
+          <button type="button" class="btn-ghost" id="btn-download-exam-patch">Скачать JSON для сайта</button>
+        </div>
+      </div>
+      <aside class="teacher-exam-live-preview" aria-label="Просмотр теста">
+        <h4 class="teacher-exam-live-preview-title">Просмотр на месте</h4>
+        <div id="teacher-exam-live-preview">${renderTeacherExamLivePreviewHtml(examMeta, questions)}</div>
+      </aside>
     </div>
     <p class="muted teacher-exam-editor-hint" id="exam-editor-msg" hidden></p>
   </section>`;
@@ -2154,11 +2217,39 @@ function setExamEditorMessage(root, text, isError = false) {
   el.classList.toggle("error", isError);
 }
 
-function bindTeacherExamEditor(main, examId) {
+function bindTeacherExamEditor(main, examId, examMeta) {
   const panel = main.querySelector("#teacher-exam-editor");
   if (!panel) return;
   const saveBtn = panel.querySelector("#btn-save-exam-draft");
   const pubBtn = panel.querySelector("#btn-publish-exam");
+  const patchBtn = panel.querySelector("#btn-download-exam-patch");
+  const previewRoot = panel.querySelector("#teacher-exam-live-preview");
+  let previewTimer = null;
+
+  const refreshLivePreview = () => {
+    if (!previewRoot) return;
+    const questions = collectTeacherExamQuestionsFromEditor(panel);
+    previewRoot.innerHTML = renderTeacherExamLivePreviewHtml(examMeta, questions);
+  };
+
+  panel.querySelectorAll(".teacher-q-text, .teacher-q-opt-input").forEach((el) => {
+    el.addEventListener("input", () => {
+      clearTimeout(previewTimer);
+      previewTimer = setTimeout(refreshLivePreview, 180);
+    });
+  });
+  panel.querySelectorAll('input[type="radio"]').forEach((el) => {
+    el.addEventListener("change", refreshLivePreview);
+  });
+
+  patchBtn?.addEventListener("click", () => {
+    const questions = collectTeacherExamQuestionsFromEditor(panel);
+    downloadPortalExamPatch(examMeta || { id: examId }, questions);
+    setExamEditorMessage(
+      panel,
+      "Файл скачан. Обновите exam в data/portal.json (questions + published_to_students: true) и отправьте на GitHub."
+    );
+  });
 
   saveBtn?.addEventListener("click", async () => {
     const questions = collectTeacherExamQuestionsFromEditor(panel);
@@ -2188,7 +2279,11 @@ function bindTeacherExamEditor(main, examId) {
         method: "POST",
         body: JSON.stringify({ questions }),
       });
-      setExamEditorMessage(panel, "Тест опубликован. Ученики на этом устройстве могут сдавать обновлённую версию.");
+      downloadPortalExamPatch(examMeta || { id: examId }, questions);
+      setExamEditorMessage(
+        panel,
+        "Черновик опубликован на этом устройстве. Файл для GitHub скачан — загрузите обновление portal.json, чтобы ученики на других устройствах увидели исправленный тест."
+      );
       await renderAdminFlow();
     } catch (e) {
       setExamEditorMessage(panel, "Не удалось опубликовать тест.", true);
@@ -2317,7 +2412,8 @@ async function renderAdminExamDetail(main) {
   const teacherReportPanel = renderTeacherReportPanel(data, examId);
   const teacherEditorPanel = renderTeacherExamEditorPanel(
     data.questions,
-    data.exam_editor || { published: true }
+    data.exam_editor || { published: true },
+    { ...ex, id: examId }
   );
 
   main.innerHTML = `
@@ -2337,7 +2433,7 @@ async function renderAdminExamDetail(main) {
   bindCollapsiblePanels(main);
   bindStudentTableExpand(main);
   bindExamSessionPanel(main, examId, data.students);
-  bindTeacherExamEditor(main, examId);
+  bindTeacherExamEditor(main, examId, { ...ex, id: examId });
   bindTeacherReportPanel(main, examId);
   $("btn-back-tests").addEventListener("click", () => {
     portalState.adminView = "subject";

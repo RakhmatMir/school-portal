@@ -26,6 +26,8 @@
       "kind_label": "Тест A1",
       "phase": "active",
       "catalog_key": "todo",
+      "requires_teacher_publish": true,
+      "published_to_students": false,
       "question_count": 10,
       "questions": [
         {
