@@ -2179,9 +2179,9 @@ function renderTeacherExamLivePreviewHtml(examMeta, questions) {
 }
 
 function renderAdminTestsPanel(className, schedule, bundleData) {
-  const sch = schedule || bundleData?.schedule || { total_minutes: 90, test_count: 3, minutes_per_test: 30 };
+  const sch = schedule || bundleData?.schedule || { total_minutes: 45, test_count: 3, minutes_per_test: 15 };
   const perTest =
-    sch.minutes_per_test ?? Math.max(5, Math.floor((sch.total_minutes || 90) / (sch.test_count || 3)));
+    sch.minutes_per_test ?? Math.max(5, Math.floor((sch.total_minutes || 45) / (sch.test_count || 3)));
   const count = sch.test_count ?? (bundleData?.exams?.length || 3);
   const exams = bundleData?.exams || [];
   const published = Boolean(bundleData?.bundle_published);
@@ -2198,11 +2198,11 @@ function renderAdminTestsPanel(className, schedule, bundleData) {
       <p class="muted">Общее время на все тесты (делится поровну): <strong>${count}</strong> тест(а) · ≈ <strong id="admin-timing-per-test">${perTest}</strong> мин на каждый.</p>
       <label class="admin-timing-total">
         <span>Общее время</span>
-        <input type="number" id="admin-timing-total" min="15" max="300" step="5" value="${sch.total_minutes ?? 90}" />
+        <input type="number" id="admin-timing-total" class="admin-timing-input" min="15" max="300" step="1" inputmode="numeric" value="${sch.total_minutes ?? 45}" />
         <span class="muted">мин</span>
+        <button type="button" class="btn-secondary btn-save-timing-inline" id="btn-save-exam-timing" hidden>Сохранить</button>
       </label>
       <p class="muted" id="admin-timing-preview" data-test-count="${count}"></p>
-      <button type="button" class="btn-secondary" id="btn-save-exam-timing">Сохранить время</button>
       <p class="muted admin-timing-msg" id="admin-timing-msg" hidden></p>
     </div>
     <ol class="list-plain admin-bundle-order">${list}</ol>
@@ -2224,12 +2224,21 @@ function bindAdminTestsPanel(main, className) {
   const preview = panel.querySelector("#admin-timing-preview");
   const perTestEl = panel.querySelector("#admin-timing-per-test");
   const testCount = Number(preview?.getAttribute("data-test-count")) || 3;
+  let savedTotalMinutes = Number(totalInput?.value);
+  if (!Number.isFinite(savedTotalMinutes)) savedTotalMinutes = 45;
+
+  const syncSaveTimingButton = () => {
+    const current = Number(totalInput?.value);
+    const dirty = Number.isFinite(current) && current !== savedTotalMinutes;
+    if (saveBtn) saveBtn.hidden = !dirty;
+  };
 
   const refreshPreview = () => {
-    const total = Number(totalInput?.value) || 90;
+    const total = Number(totalInput?.value) || 45;
     const per = Math.max(5, Math.floor(total / testCount));
     if (perTestEl) perTestEl.textContent = String(per);
     if (preview) preview.textContent = `${total} мин ÷ ${testCount} = ${per} мин на тест.`;
+    syncSaveTimingButton();
   };
   totalInput?.addEventListener("input", refreshPreview);
   refreshPreview();
@@ -2242,6 +2251,8 @@ function bindAdminTestsPanel(main, className) {
         method: "POST",
         body: JSON.stringify({ total_minutes: total }),
       });
+      savedTotalMinutes = total;
+      syncSaveTimingButton();
       if (timingMsg) {
         timingMsg.hidden = false;
         timingMsg.textContent = "Время сохранено.";

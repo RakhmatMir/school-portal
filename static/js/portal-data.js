@@ -113,7 +113,7 @@ function isClassBundlePublished(className) {
 function getClassExamSchedule(className) {
   const all = loadExamSchedules();
   const row = all[className];
-  const total_minutes = Number(row?.total_minutes) || 90;
+  const total_minutes = Number(row?.total_minutes) || 45;
   return {
     total_minutes,
     bundle_published: Boolean(row?.bundle_published),
@@ -137,7 +137,7 @@ function saveClassExamSchedule(className, schedule) {
   const all = loadExamSchedules();
   const prev = all[className] || {};
   all[className] = {
-    total_minutes: Number(schedule.total_minutes) || Number(prev.total_minutes) || 90,
+    total_minutes: Number(schedule.total_minutes) || Number(prev.total_minutes) || 45,
     bundle_published:
       schedule.bundle_published !== undefined
         ? Boolean(schedule.bundle_published)

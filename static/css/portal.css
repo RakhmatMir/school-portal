@@ -1076,7 +1076,8 @@ li.student-row .student-row-meta {
   flex-wrap: wrap;
 }
 
-.panel-admin-timing input[type="number"] {
+.panel-admin-timing input[type="number"],
+.panel-admin-tests .admin-timing-input {
   width: 5rem;
   padding: 7px 9px;
   border: 1px solid var(--border);
@@ -1084,6 +1085,25 @@ li.student-row .student-row-meta {
   background: var(--input-bg);
   color: var(--text);
   font: inherit;
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
+.panel-admin-tests .admin-timing-input::-webkit-outer-spin-button,
+.panel-admin-tests .admin-timing-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.panel-admin-tests .admin-timing-total {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.panel-admin-tests .btn-save-timing-inline {
+  margin-left: 4px;
 }
 
 .admin-timing-subjects {
