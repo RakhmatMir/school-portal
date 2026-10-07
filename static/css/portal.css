@@ -1299,10 +1299,8 @@ li.student-row .student-row-meta {
   margin-left: auto;
   border-radius: 8px;
   color: var(--muted);
-  transition:
-    transform 0.8s ease,
-    color 0.15s ease,
-    background 0.15s ease;
+  background: transparent;
+  transition: transform 0.8s ease, color 0.15s ease;
 }
 
 .panel-notify .notify-summary-count + .notify-chevron {
