@@ -1995,7 +1995,6 @@ async function renderAdminHome(main, session) {
   const activeTests = staffTests.filter((t) => t.catalog_key !== "done");
   const staffTestPools = { done: doneTests, active: activeTests };
 
-  const role = ROLE_LABEL.admin;
   const testsPanel = isStaffRole()
     ? `<div class="panel panel-staff-tests">
       <h3>Контрольные</h3>
@@ -2007,7 +2006,6 @@ async function renderAdminHome(main, session) {
     </div>`
     : "";
   main.innerHTML = `
-    <span class="badge">${escapeHtml(role)}</span>
     ${renderNotifyRecipientsPanel()}
     <div class="panel">
       <h3>Классы</h3>
@@ -2994,7 +2992,14 @@ async function renderDashboard(session) {
   $("app-school-name").textContent = session.school_name || "";
   const role = session.user?.role || "";
   const roleLabel = ROLE_LABEL[role] || role;
-  $("app-user-line").textContent = `${session.user.full_name} · ${roleLabel}`;
+  const userLineEl = $("app-user-line");
+  if (role === "admin") {
+    userLineEl.textContent = "";
+    userLineEl.hidden = true;
+  } else {
+    userLineEl.hidden = false;
+    userLineEl.textContent = `${session.user.full_name} · ${roleLabel}`;
+  }
   showApp();
 
   if (role === "admin") {
