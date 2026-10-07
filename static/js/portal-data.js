@@ -92,7 +92,7 @@ function saveExamSchedules(map) {
 
 function defaultClassExamSchedule() {
   return {
-    total_minutes: 90,
+    total_minutes: 45,
     bundle_published: false,
   };
 }
