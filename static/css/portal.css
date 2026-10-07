@@ -648,6 +648,7 @@ body.exam-guard-open #exam-guard-modal .exam-guard-dialog {
   cursor: pointer;
   text-align: left;
   font: inherit;
+  perspective: 480px;
 }
 
 .panel-collapse .collapse-trigger-text {
@@ -684,28 +685,24 @@ body.exam-guard-open #exam-guard-modal .exam-guard-dialog {
   font-size: 0.88rem;
 }
 
+.panel-collapse .collapse-trigger {
+  perspective: 480px;
+}
+
 .panel-collapse .collapse-chevron {
   flex-shrink: 0;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 1.5rem;
-  height: 1.5rem;
   color: var(--muted);
   font-size: 1.25rem;
   line-height: 1;
-  perspective: 420px;
-}
-
-.panel-collapse .collapse-chevron::before {
-  display: block;
-  transition: transform 0.8s ease;
+  display: inline-block;
+  transform: rotate(0deg);
   transform-style: preserve-3d;
   backface-visibility: hidden;
+  transition: transform 0.8s ease;
 }
 
-.panel-collapse.is-open .collapse-chevron::before {
-  transform: rotateX(180deg);
+.panel-collapse.is-open .collapse-chevron {
+  transform: rotateX(180deg) rotate(90deg);
 }
 
 .panel-collapse .collapse-body {
@@ -1301,6 +1298,7 @@ li.student-row .student-row-meta {
   min-height: 1.5rem;
   width: 100%;
   min-width: 0;
+  perspective: 520px;
 }
 
 .panel-notify .notify-summary-title {
@@ -1329,7 +1327,16 @@ li.student-row .student-row-meta {
   border-radius: 8px;
   color: var(--muted);
   background: transparent;
-  transition: transform 0.8s ease, color var(--hover-duration) ease;
+  transform-style: preserve-3d;
+  transition: color var(--hover-duration) ease;
+}
+
+.panel-notify .notify-chevron svg {
+  display: block;
+  transform-origin: center center;
+  transform-style: preserve-3d;
+  backface-visibility: hidden;
+  transition: transform 0.8s ease;
 }
 
 .panel-notify .notify-summary-count + .notify-chevron {
@@ -1343,8 +1350,11 @@ li.student-row .student-row-meta {
 }
 
 .panel-notify .notify-disclosure.is-open .notify-chevron {
-  transform: rotate(180deg);
   color: var(--accent);
+}
+
+.panel-notify .notify-disclosure.is-open .notify-chevron svg {
+  transform: rotateX(180deg);
 }
 
 .panel-notify .notify-body {
@@ -1370,6 +1380,10 @@ li.student-row .student-row-meta {
   margin-top: 14px;
   padding-top: 14px;
   border-top-color: var(--border);
+}
+
+.panel-notify .notify-disclosure.is-open .notify-body-inner {
+  overflow: visible;
 }
 
 @media (prefers-reduced-motion: reduce) {

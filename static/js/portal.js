@@ -1,4 +1,4 @@
-import { dataApi, demoAuthApi } from "./portal-data.js";
+import { dataApi, demoAuthApi } from "./portal-data.js?v=81";
 
 const $ = (id) => document.getElementById(id);
 
