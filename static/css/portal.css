@@ -1156,7 +1156,22 @@ li.student-row .student-row-meta {
   margin-top: 12px;
 }
 
-.panel-admin-tests .admin-tests-timing-block {
+.panel-admin-class-hub .admin-class-hub-divider {
+  margin: 20px 0 16px;
+  border-top: 1px solid var(--border);
+}
+
+.panel-admin-class-hub .admin-class-hub-subhead {
+  margin: 0 0 6px;
+  font-size: 1rem;
+}
+
+.panel-admin-class-hub .admin-class-hub-hint {
+  margin: 0 0 10px;
+}
+
+.panel-admin-tests .admin-tests-timing-block,
+.panel-admin-class-hub .admin-tests-timing-block {
   padding: 12px 0 16px;
   margin-bottom: 8px;
   border-bottom: 1px solid var(--border);
