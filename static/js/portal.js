@@ -158,13 +158,13 @@ function renderNotifyRecipientsPanel(expanded = isNotifyRecipientsPanelOpen()) {
   return `<div class="panel panel-demo panel-notify" id="panel-notify">
     <details class="notify-disclosure"${openAttr}>
       <summary class="notify-summary" aria-label="Уведомления о сдаче, нажмите чтобы раскрыть">
-        <span class="notify-summary-main panel-demo-head">
-          <h3>Уведомления о сдаче</h3>
+        <span class="notify-summary-row">
+          <h3 class="notify-summary-title">Уведомления о сдаче</h3>
           <span class="tag tag-demo">Демо</span>
-        </span>
-        ${summaryCount}
-        <span class="notify-chevron" aria-hidden="true">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+          ${summaryCount}
+          <span class="notify-chevron" aria-hidden="true" title="Раскрыть">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+          </span>
         </span>
       </summary>
       <div class="notify-body">
