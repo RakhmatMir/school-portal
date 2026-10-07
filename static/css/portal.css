@@ -442,6 +442,10 @@ body.exam-guard-open #exam-guard-modal .exam-guard-dialog {
   color: var(--text);
   cursor: pointer;
   font-size: 0.9rem;
+  transition:
+    background var(--hover-duration) ease,
+    border-color var(--hover-duration) ease,
+    color var(--hover-duration) ease;
 }
 
 .btn-ghost:hover {
@@ -584,6 +588,9 @@ body.exam-guard-open #exam-guard-modal .exam-guard-dialog {
   justify-content: center;
   font-size: 1.15rem;
   line-height: 1;
+  transition:
+    background var(--hover-duration) ease,
+    border-color var(--hover-duration) ease;
 }
 
 .btn-theme:hover {
@@ -622,6 +629,10 @@ body.exam-guard-open #exam-guard-modal .exam-guard-dialog {
 .panel-collapse {
   padding: 0;
   overflow: hidden;
+}
+
+.panel-collapse.is-open {
+  overflow: visible;
 }
 
 .panel-collapse .collapse-trigger {
@@ -675,14 +686,26 @@ body.exam-guard-open #exam-guard-modal .exam-guard-dialog {
 
 .panel-collapse .collapse-chevron {
   flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.5rem;
+  height: 1.5rem;
   color: var(--muted);
   font-size: 1.25rem;
   line-height: 1;
-  transition: transform 0.8s ease;
+  perspective: 420px;
 }
 
-.panel-collapse.is-open .collapse-chevron {
-  transform: rotate(90deg);
+.panel-collapse .collapse-chevron::before {
+  display: block;
+  transition: transform 0.8s ease;
+  transform-style: preserve-3d;
+  backface-visibility: hidden;
+}
+
+.panel-collapse.is-open .collapse-chevron::before {
+  transform: rotateX(180deg);
 }
 
 .panel-collapse .collapse-body {
@@ -705,6 +728,10 @@ body.exam-guard-open #exam-guard-modal .exam-guard-dialog {
   grid-template-rows: 1fr;
   padding-bottom: 20px;
   border-top-color: var(--border);
+}
+
+.panel-collapse.is-open .collapse-body-inner {
+  overflow: visible;
 }
 
 .panel-collapse .collapse-body-inner > .panel,
