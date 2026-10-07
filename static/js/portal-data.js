@@ -4,7 +4,9 @@ const PROBLEM_THRESHOLD = 40;
 const SUBMISSIONS_KEY = "portal_site_submissions_v1";
 const TEACHER_REPORTS_KEY = "portal_site_teacher_reports_v1";
 const EXAM_DRAFTS_KEY = "portal_exam_drafts_v1";
+const EXAM_SCHEDULE_KEY = "portal_exam_schedule_v1";
 const DEMO_SESSION_KEY = "portal_demo_session_v1";
+const TIMING_SUBJECT_CODES = ["math", "russian", "english"];
 
 let bundlePromise = null;
 
@@ -75,6 +77,71 @@ function getExamDraft(examId) {
   return loadExamDrafts()[String(examId)] || null;
 }
 
+function loadExamSchedules() {
+  try {
+    const raw = localStorage.getItem(EXAM_SCHEDULE_KEY);
+    return raw ? JSON.parse(raw) : {};
+  } catch {
+    return {};
+  }
+}
+
+function saveExamSchedules(map) {
+  localStorage.setItem(EXAM_SCHEDULE_KEY, JSON.stringify(map));
+}
+
+function defaultClassExamSchedule() {
+  return {
+    total_minutes: 90,
+    subject_minutes: {
+      math: 30,
+      russian: 30,
+      english: 30,
+    },
+  };
+}
+
+function getClassExamSchedule(className) {
+  const all = loadExamSchedules();
+  const row = all[className];
+  if (!row) return defaultClassExamSchedule();
+  const subject_minutes = { ...defaultClassExamSchedule().subject_minutes, ...(row.subject_minutes || {}) };
+  return {
+    total_minutes: Number(row.total_minutes) || 90,
+    subject_minutes,
+  };
+}
+
+function saveClassExamSchedule(className, schedule) {
+  const all = loadExamSchedules();
+  all[className] = {
+    total_minutes: Number(schedule.total_minutes) || 90,
+    subject_minutes: schedule.subject_minutes || {},
+    updated_at: new Date().toISOString(),
+  };
+  saveExamSchedules(all);
+  return all[className];
+}
+
+function resolveExamDurationMinutes(bundle, examRow) {
+  if (!examRow) return 25;
+  const draft = getExamDraft(examRow.id);
+  if (draft?.duration_minutes != null && Number.isFinite(Number(draft.duration_minutes))) {
+    return Number(draft.duration_minutes);
+  }
+  const schedule = getClassExamSchedule(examRow.class_name);
+  const fromSubject = schedule.subject_minutes?.[examRow.subject_code];
+  if (fromSubject != null && Number.isFinite(Number(fromSubject))) return Number(fromSubject);
+  return examRow.duration_minutes ?? 25;
+}
+
+function isTeacherExamReady(bundle, examId) {
+  const base = examById(bundle, examId);
+  if (!base?.requires_teacher_publish) return true;
+  const draft = getExamDraft(examId);
+  return Boolean(draft?.teacher_ready);
+}
+
 function normalizeExamQuestions(questions) {
   if (!Array.isArray(questions)) return [];
   return questions.map((q) => {
@@ -121,7 +188,8 @@ function examRecord(bundle, examId, role) {
   const base = examById(bundle, examId);
   if (!base) return null;
   const questions = effectiveExamQuestions(bundle, examId, role);
-  return { ...base, questions, question_count: questions.length };
+  const duration_minutes = resolveExamDurationMinutes(bundle, base);
+  return { ...base, questions, question_count: questions.length, duration_minutes };
 }
 
 function examById(bundle, examId) {
@@ -158,8 +226,8 @@ function testsForClassSubject(bundle, className, subjectCode) {
 function staffTestsList(bundle) {
   return bundle.exams.map((ex) => {
     const published = isExamPublishedToStudents(bundle, ex.id);
-    const awaitingSite =
-      ex.requires_teacher_publish && ex.published_to_students !== true;
+    const teacherReady = isTeacherExamReady(bundle, ex.id);
+    const duration_minutes = resolveExamDurationMinutes(bundle, ex);
     return {
       id: ex.id,
       class_name: ex.class_name,
@@ -173,7 +241,9 @@ function staffTestsList(bundle) {
       submitted_count: 0,
       class_total: rosterSize(bundle, ex.class_name),
       published_to_students: published,
-      awaiting_site_publish: awaitingSite,
+      teacher_ready: teacherReady,
+      duration_minutes,
+      requires_teacher_publish: Boolean(ex.requires_teacher_publish),
     };
   });
 }
@@ -562,15 +632,41 @@ export async function dataApi(path, options = {}) {
       teacher_report_sent: teacherReports.has(examId),
       exam_editor: {
         published: isExamPublishedToStudents(bundle, examId),
+        teacher_ready: isTeacherExamReady(bundle, examId),
         has_draft: Boolean(draft?.questions?.length),
         updated_at: draft?.updated_at || null,
+        duration_minutes: resolveExamDurationMinutes(bundle, examById(bundle, examId)),
       },
+      exam_timing:
+        user.role === "admin"
+          ? getClassExamSchedule(ex.class_name)
+          : null,
     };
+  }
+
+  m = path.match(/^\/api\/portal\/class\/([^/]+)\/exam-timing$/);
+  if (m) {
+    if (!user || user.role !== "admin") throw new Error("forbidden");
+    const cls = decodeURIComponent(m[1]);
+    if (method === "GET") {
+      return { class_name: cls, schedule: getClassExamSchedule(cls) };
+    }
+    if (method === "POST") {
+      const body = parseBody(options);
+      const subject_minutes = {};
+      for (const code of TIMING_SUBJECT_CODES) {
+        const v = Number(body.subject_minutes?.[code]);
+        if (Number.isFinite(v) && v > 0) subject_minutes[code] = Math.round(v);
+      }
+      const total_minutes = Math.round(Number(body.total_minutes) || 90);
+      const saved = saveClassExamSchedule(cls, { total_minutes, subject_minutes });
+      return { ok: true, class_name: cls, schedule: saved };
+    }
   }
 
   m = path.match(/^\/api\/portal\/exams\/(\d+)\/draft$/);
   if (m && method === "POST") {
-    if (!user || !isStaffRole(user.role)) throw new Error("forbidden");
+    if (!user || user.role !== "teacher") throw new Error("forbidden");
     const examId = Number(m[1]);
     const base = examById(bundle, examId);
     if (!base) throw new Error("exam_not_found");
@@ -580,20 +676,23 @@ export async function dataApi(path, options = {}) {
     const prev = drafts[String(examId)] || {};
     drafts[String(examId)] = {
       questions,
-      published: body.publish === true ? true : Boolean(prev.published),
+      teacher_ready: false,
+      published: Boolean(prev.published),
+      duration_minutes: prev.duration_minutes,
       updated_at: new Date().toISOString(),
     };
     saveExamDrafts(drafts);
     return {
       ok: true,
+      teacher_ready: false,
       published: drafts[String(examId)].published,
       question_count: questions.length,
     };
   }
 
-  m = path.match(/^\/api\/portal\/exams\/(\d+)\/publish$/);
+  m = path.match(/^\/api\/portal\/exams\/(\d+)\/teacher-submit$/);
   if (m && method === "POST") {
-    if (!user || !isStaffRole(user.role)) throw new Error("forbidden");
+    if (!user || user.role !== "teacher") throw new Error("forbidden");
     const examId = Number(m[1]);
     const base = examById(bundle, examId);
     if (!base) throw new Error("exam_not_found");
@@ -605,11 +704,45 @@ export async function dataApi(path, options = {}) {
     );
     drafts[String(examId)] = {
       questions,
-      published: true,
+      teacher_ready: true,
+      published: Boolean(prev.published),
+      duration_minutes: prev.duration_minutes,
       updated_at: new Date().toISOString(),
     };
     saveExamDrafts(drafts);
-    return { ok: true, published: true, question_count: questions.length };
+    return { ok: true, teacher_ready: true, question_count: questions.length };
+  }
+
+  m = path.match(/^\/api\/portal\/exams\/(\d+)\/publish$/);
+  if (m && method === "POST") {
+    if (!user || user.role !== "admin") throw new Error("forbidden");
+    const examId = Number(m[1]);
+    const base = examById(bundle, examId);
+    if (!base) throw new Error("exam_not_found");
+    if (!isTeacherExamReady(bundle, examId)) throw new Error("teacher_not_ready");
+    const body = parseBody(options);
+    const drafts = loadExamDrafts();
+    const prev = drafts[String(examId)] || {};
+    const questions = normalizeExamQuestions(
+      body.questions || prev.questions || base.questions
+    );
+    const schedule = getClassExamSchedule(base.class_name);
+    const duration_minutes = resolveExamDurationMinutes(bundle, base);
+    drafts[String(examId)] = {
+      questions,
+      teacher_ready: true,
+      published: true,
+      duration_minutes,
+      updated_at: new Date().toISOString(),
+    };
+    saveExamDrafts(drafts);
+    return {
+      ok: true,
+      published: true,
+      question_count: questions.length,
+      duration_minutes,
+      schedule,
+    };
   }
 
   m = path.match(/^\/api\/portal\/exams\/(\d+)\/preview$/);

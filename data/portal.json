@@ -4,10 +4,20 @@
     {
       "class_name": "6Б",
       "student_count": 19,
-      "test_count": 1
+      "test_count": 3
     }
   ],
   "subjects": [
+    {
+      "code": "math",
+      "title": "Математика",
+      "test_count": 1
+    },
+    {
+      "code": "russian",
+      "title": "Русский язык",
+      "test_count": 1
+    },
     {
       "code": "english",
       "title": "Английский язык",
@@ -15,6 +25,60 @@
     }
   ],
   "exams": [
+    {
+      "id": 101,
+      "class_name": "6Б",
+      "subject_code": "math",
+      "subject_title": "Математика",
+      "title": "Контрольная по математике (демо)",
+      "control_date": "07.10.2026",
+      "duration_minutes": 30,
+      "kind_label": "Тест",
+      "phase": "active",
+      "catalog_key": "todo",
+      "requires_teacher_publish": true,
+      "published_to_students": false,
+      "question_count": 2,
+      "questions": [
+        {
+          "text": "Сколько будет 7 + 5?",
+          "options": ["11", "12", "13"],
+          "correct_index": 1
+        },
+        {
+          "text": "Чему равно 9 − 4?",
+          "options": ["4", "5", "6"],
+          "correct_index": 1
+        }
+      ]
+    },
+    {
+      "id": 103,
+      "class_name": "6Б",
+      "subject_code": "russian",
+      "subject_title": "Русский язык",
+      "title": "Контрольная по русскому языку (демо)",
+      "control_date": "07.10.2026",
+      "duration_minutes": 30,
+      "kind_label": "Тест",
+      "phase": "active",
+      "catalog_key": "todo",
+      "requires_teacher_publish": true,
+      "published_to_students": false,
+      "question_count": 2,
+      "questions": [
+        {
+          "text": "В каком слове ударение падает на первый слог?",
+          "options": ["звонит", "красивее", "торты"],
+          "correct_index": 2
+        },
+        {
+          "text": "Выберите правильное написание:",
+          "options": ["прийти", "придти", "прийдти"],
+          "correct_index": 0
+        }
+      ]
+    },
     {
       "id": 102,
       "class_name": "6Б",

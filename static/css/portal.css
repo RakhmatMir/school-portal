@@ -1067,6 +1067,36 @@ li.student-row .student-row-meta {
   gap: 10px;
 }
 
+.panel-admin-timing .admin-timing-total,
+.panel-admin-timing .admin-timing-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 10px 0;
+  flex-wrap: wrap;
+}
+
+.panel-admin-timing input[type="number"] {
+  width: 5rem;
+  padding: 7px 9px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--input-bg);
+  color: var(--text);
+  font: inherit;
+}
+
+.admin-timing-subjects {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.panel-admin-exam-publish .admin-exam-publish-actions {
+  margin-top: 12px;
+}
+
 .teacher-exam-editor-hint.error {
   color: #f87171;
 }
