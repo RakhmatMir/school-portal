@@ -1333,18 +1333,15 @@ li.student-row .student-row-meta {
   margin-left: 0;
 }
 
-.panel-notify .notify-summary:hover .notify-chevron,
-.panel-notify .notify-disclosure.is-open .notify-chevron {
+.panel-notify .notify-summary:hover .notify-chevron {
   color: var(--accent);
   background: transparent;
 }
 
-.panel-notify .notify-disclosure.is-open .notify-chevron {
-  color: var(--accent);
-}
-
-.panel-notify .notify-disclosure.is-open .notify-chevron svg {
+.panel-notify .notify-disclosure.is-open .notify-chevron,
+.panel-notify #btn-notify-toggle[aria-expanded="true"] .notify-chevron {
   transform: rotate(180deg);
+  color: var(--accent);
 }
 
 .panel-notify .notify-body {
