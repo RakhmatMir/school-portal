@@ -1,4 +1,4 @@
-import { dataApi, demoAuthApi } from "./portal-data.js?v=83";
+import { dataApi, demoAuthApi } from "./portal-data.js?v=84";
 
 const $ = (id) => document.getElementById(id);
 
@@ -162,9 +162,7 @@ function renderNotifyRecipientsPanel(expanded = isNotifyRecipientsPanelOpen()) {
           <span class="notify-summary-title">Уведомления о сдаче</span>
           <span class="tag tag-demo">Демо</span>
           ${summaryCount}
-          <span class="notify-chevron" aria-hidden="true">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
-          </span>
+          <span class="notify-chevron" aria-hidden="true">▼</span>
         </span>
       </button>
       <div class="notify-body" id="notify-panel-body">

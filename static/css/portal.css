@@ -1312,11 +1312,13 @@ li.student-row .student-row-meta {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 2rem;
+  min-width: 2rem;
   height: 2rem;
   margin-left: auto;
   border-radius: 8px;
   color: var(--muted);
+  font-size: 1rem;
+  line-height: 1;
   background: transparent;
   transform: rotate(0deg);
   transform-origin: center center;
@@ -1325,12 +1327,8 @@ li.student-row .student-row-meta {
     color var(--hover-duration) ease;
 }
 
-.panel-notify .notify-chevron svg {
-  display: block;
-}
-
 .panel-notify .notify-summary-count + .notify-chevron {
-  margin-left: 0;
+  margin-left: auto;
 }
 
 .panel-notify .notify-summary:hover .notify-chevron {
