@@ -45,6 +45,23 @@ const AUTH_API_PATHS = new Set(["/api/login", "/api/logout", "/api/me"]);
 
 const NOTIFY_RECIPIENTS_KEY = "portal_demo_notify_v2";
 const NOTIFY_RECIPIENTS_MAX = 4;
+const NOTIFY_PANEL_EXPANDED_KEY = "portal_notify_expanded_v1";
+
+function isNotifyRecipientsPanelOpen() {
+  try {
+    return localStorage.getItem(NOTIFY_PANEL_EXPANDED_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
+function setNotifyRecipientsPanelOpen(open) {
+  try {
+    localStorage.setItem(NOTIFY_PANEL_EXPANDED_KEY, open ? "1" : "0");
+  } catch {
+    /* ignore */
+  }
+}
 const EXAM_SESSION_KEY = "portal_demo_exam_sessions_v1";
 
 function normalizeNotifyContact(value) {
@@ -129,7 +146,7 @@ function countReadyStudents(session, totalStudents) {
   return Math.min(n, totalStudents || n);
 }
 
-function renderNotifyRecipientsPanel() {
+function renderNotifyRecipientsPanel(expanded = isNotifyRecipientsPanelOpen()) {
   const contacts = loadNotifyRecipients();
   const listHtml = contacts.length
     ? `<ul class="notify-list">${contacts
@@ -143,22 +160,34 @@ function renderNotifyRecipientsPanel() {
         .join("")}</ul>`
     : `<p class="muted notify-empty">Получателей пока нет — добавьте Telegram ID или email ниже.</p>`;
   const atMax = contacts.length >= NOTIFY_RECIPIENTS_MAX;
-  return `<div class="panel panel-demo" id="panel-notify">
-    <div class="panel-demo-head">
-      <h3>Уведомления о сдаче</h3>
-      <span class="tag tag-demo">Демо</span>
-    </div>
-    <p class="lead muted">До ${NOTIFY_RECIPIENTS_MAX} получателей. В одном поле — Telegram ID или email. Сохраняется в браузере; отправка будет позже.</p>
-    ${listHtml}
-    <div class="notify-add-row">
-      <label class="field notify-add-field">
-        <span>Контакт</span>
-        <input type="text" class="notify-input" id="notify-input" placeholder="123456789 или teacher@school.uz" autocomplete="off" ${atMax ? "disabled" : ""} />
-      </label>
-      <button type="button" class="btn-primary btn-notify-add" id="btn-notify-add" ${atMax ? "disabled" : ""}>Добавить</button>
-    </div>
-    <p class="muted notify-counter">Добавлено ${contacts.length} из ${NOTIFY_RECIPIENTS_MAX}</p>
-    <p class="demo-save-hint muted" id="notify-save-hint" hidden>Сохранено локально (демо)</p>
+  const openAttr = expanded ? " open" : "";
+  const summaryMeta =
+    contacts.length > 0
+      ? `Добавлено ${contacts.length} из ${NOTIFY_RECIPIENTS_MAX}`
+      : `До ${NOTIFY_RECIPIENTS_MAX} · Telegram ID или email`;
+  return `<div class="panel panel-demo panel-notify" id="panel-notify">
+    <details class="notify-disclosure"${openAttr}>
+      <summary class="notify-summary">
+        <span class="notify-summary-main panel-demo-head">
+          <h3>Уведомления о сдаче</h3>
+          <span class="tag tag-demo">Демо</span>
+        </span>
+        <span class="muted notify-summary-meta">${escapeHtml(summaryMeta)}</span>
+      </summary>
+      <div class="notify-body">
+        <p class="lead muted">До ${NOTIFY_RECIPIENTS_MAX} получателей. В одном поле — Telegram ID или email. Сохраняется в браузере; отправка будет позже.</p>
+        ${listHtml}
+        <div class="notify-add-row">
+          <label class="field notify-add-field">
+            <span>Контакт</span>
+            <input type="text" class="notify-input" id="notify-input" placeholder="123456789 или teacher@school.uz" autocomplete="off" ${atMax ? "disabled" : ""} />
+          </label>
+          <button type="button" class="btn-primary btn-notify-add" id="btn-notify-add" ${atMax ? "disabled" : ""}>Добавить</button>
+        </div>
+        <p class="muted notify-counter">Добавлено ${contacts.length} из ${NOTIFY_RECIPIENTS_MAX}</p>
+        <p class="demo-save-hint muted" id="notify-save-hint" hidden>Сохранено локально (демо)</p>
+      </div>
+    </details>
   </div>`;
 }
 
@@ -170,9 +199,12 @@ function bindNotifyRecipients(root) {
     const panelEl = main?.querySelector("#panel-notify");
     const scrollY = window.scrollY;
     const hadFocus = document.activeElement?.id === "notify-input";
+    const wasOpen =
+      panelEl?.querySelector(".notify-disclosure")?.open ?? isNotifyRecipientsPanelOpen();
+    if (wasOpen) setNotifyRecipientsPanelOpen(true);
     if (!panelEl?.parentElement) return;
     const next = document.createElement("div");
-    next.innerHTML = renderNotifyRecipientsPanel();
+    next.innerHTML = renderNotifyRecipientsPanel(wasOpen);
     const newPanel = next.firstElementChild;
     panelEl.parentElement.replaceChild(newPanel, panelEl);
     bindNotifyRecipients(main);
@@ -189,6 +221,11 @@ function bindNotifyRecipients(root) {
       saveHint.hidden = true;
     }, 2200);
   };
+
+  const disclosure = root.querySelector(".notify-disclosure");
+  disclosure?.addEventListener("toggle", () => {
+    setNotifyRecipientsPanelOpen(Boolean(disclosure.open));
+  });
 
   const input = root.querySelector("#notify-input");
   const addBtn = root.querySelector("#btn-notify-add");

@@ -1230,6 +1230,71 @@ li.student-row .student-row-meta {
   text-transform: uppercase;
 }
 
+.panel-notify {
+  padding-top: 12px;
+  padding-bottom: 12px;
+}
+
+.panel-notify .notify-disclosure {
+  margin: 0;
+}
+
+.panel-notify .notify-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  cursor: pointer;
+  list-style: none;
+  user-select: none;
+}
+
+.panel-notify .notify-summary::-webkit-details-marker {
+  display: none;
+}
+
+.panel-notify .notify-summary::marker {
+  content: "";
+}
+
+.panel-notify .notify-summary-main {
+  margin-bottom: 0;
+  flex-shrink: 0;
+}
+
+.panel-notify .notify-summary-meta {
+  font-size: 0.88rem;
+  text-align: right;
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.panel-notify .notify-summary::after {
+  content: "›";
+  color: var(--muted);
+  font-size: 1.1rem;
+  flex-shrink: 0;
+  transform: rotate(0deg);
+  transition: transform 0.15s ease;
+}
+
+.panel-notify .notify-disclosure[open] .notify-summary::after {
+  transform: rotate(90deg);
+}
+
+.panel-notify .notify-body {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+}
+
+.panel-notify .notify-body .lead {
+  margin-top: 0;
+}
+
 .notify-list {
   list-style: none;
   margin: 12px 0 0;
