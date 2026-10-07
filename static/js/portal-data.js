@@ -135,13 +135,6 @@ function resolveExamDurationMinutes(bundle, examRow) {
   return examRow.duration_minutes ?? 25;
 }
 
-function isTeacherExamReady(bundle, examId) {
-  const base = examById(bundle, examId);
-  if (!base?.requires_teacher_publish) return true;
-  const draft = getExamDraft(examId);
-  return Boolean(draft?.teacher_ready);
-}
-
 function normalizeExamQuestions(questions) {
   if (!Array.isArray(questions)) return [];
   return questions.map((q) => {
@@ -158,8 +151,8 @@ function normalizeExamQuestions(questions) {
   });
 }
 
-function isStaffRole(role) {
-  return role === "admin" || role === "teacher";
+function isAdminRole(role) {
+  return role === "admin";
 }
 
 function isExamPublishedToStudents(bundle, examId) {
@@ -177,7 +170,7 @@ function effectiveExamQuestions(bundle, examId, role) {
   const base = examById(bundle, examId);
   if (!base) return [];
   const draft = getExamDraft(examId);
-  const staff = isStaffRole(role);
+  const staff = isAdminRole(role);
   if (draft?.questions?.length && (staff || draft.published)) {
     return normalizeExamQuestions(draft.questions);
   }
@@ -226,7 +219,6 @@ function testsForClassSubject(bundle, className, subjectCode) {
 function staffTestsList(bundle) {
   return bundle.exams.map((ex) => {
     const published = isExamPublishedToStudents(bundle, ex.id);
-    const teacherReady = isTeacherExamReady(bundle, ex.id);
     const duration_minutes = resolveExamDurationMinutes(bundle, ex);
     return {
       id: ex.id,
@@ -241,7 +233,6 @@ function staffTestsList(bundle) {
       submitted_count: 0,
       class_total: rosterSize(bundle, ex.class_name),
       published_to_students: published,
-      teacher_ready: teacherReady,
       duration_minutes,
       requires_teacher_publish: Boolean(ex.requires_teacher_publish),
     };
@@ -525,12 +516,12 @@ export async function dataApi(path, options = {}) {
   }
 
   if (path === "/api/portal/classes" && method === "GET") {
-    if (!user || (user.role !== "admin" && user.role !== "teacher")) throw new Error("forbidden");
+    if (!user || user.role !== "admin") throw new Error("forbidden");
     return bundle.classes;
   }
 
   if (path === "/api/portal/staff/tests" && method === "GET") {
-    if (!user || (user.role !== "admin" && user.role !== "teacher")) throw new Error("forbidden");
+    if (!user || user.role !== "admin") throw new Error("forbidden");
     return { tests: staffTestsList(bundle) };
   }
 
@@ -566,7 +557,7 @@ export async function dataApi(path, options = {}) {
 
   let m = path.match(/^\/api\/portal\/class\/([^/]+)\/subjects$/);
   if (m && method === "GET") {
-    if (!user || (user.role !== "admin" && user.role !== "teacher")) throw new Error("forbidden");
+    if (!user || user.role !== "admin") throw new Error("forbidden");
     return { subjects: bundle.subjects, class_name: decodeURIComponent(m[1]) };
   }
 
@@ -598,7 +589,7 @@ export async function dataApi(path, options = {}) {
 
   m = path.match(/^\/api\/portal\/exams\/(\d+)\/admin$/);
   if (m && method === "GET") {
-    if (!user || (user.role !== "admin" && user.role !== "teacher")) throw new Error("forbidden");
+    if (!user || user.role !== "admin") throw new Error("forbidden");
     const examId = Number(m[1]);
     const ex = examRecord(bundle, examId, user.role);
     if (!ex) throw new Error("exam_not_found");
@@ -632,15 +623,11 @@ export async function dataApi(path, options = {}) {
       teacher_report_sent: teacherReports.has(examId),
       exam_editor: {
         published: isExamPublishedToStudents(bundle, examId),
-        teacher_ready: isTeacherExamReady(bundle, examId),
         has_draft: Boolean(draft?.questions?.length),
         updated_at: draft?.updated_at || null,
         duration_minutes: resolveExamDurationMinutes(bundle, examById(bundle, examId)),
       },
-      exam_timing:
-        user.role === "admin"
-          ? getClassExamSchedule(ex.class_name)
-          : null,
+      exam_timing: getClassExamSchedule(ex.class_name),
     };
   }
 
@@ -666,7 +653,7 @@ export async function dataApi(path, options = {}) {
 
   m = path.match(/^\/api\/portal\/exams\/(\d+)\/draft$/);
   if (m && method === "POST") {
-    if (!user || user.role !== "teacher") throw new Error("forbidden");
+    if (!user || user.role !== "admin") throw new Error("forbidden");
     const examId = Number(m[1]);
     const base = examById(bundle, examId);
     if (!base) throw new Error("exam_not_found");
@@ -676,7 +663,6 @@ export async function dataApi(path, options = {}) {
     const prev = drafts[String(examId)] || {};
     drafts[String(examId)] = {
       questions,
-      teacher_ready: false,
       published: Boolean(prev.published),
       duration_minutes: prev.duration_minutes,
       updated_at: new Date().toISOString(),
@@ -684,33 +670,9 @@ export async function dataApi(path, options = {}) {
     saveExamDrafts(drafts);
     return {
       ok: true,
-      teacher_ready: false,
       published: drafts[String(examId)].published,
       question_count: questions.length,
     };
-  }
-
-  m = path.match(/^\/api\/portal\/exams\/(\d+)\/teacher-submit$/);
-  if (m && method === "POST") {
-    if (!user || user.role !== "teacher") throw new Error("forbidden");
-    const examId = Number(m[1]);
-    const base = examById(bundle, examId);
-    if (!base) throw new Error("exam_not_found");
-    const body = parseBody(options);
-    const drafts = loadExamDrafts();
-    const prev = drafts[String(examId)] || {};
-    const questions = normalizeExamQuestions(
-      body.questions || prev.questions || base.questions
-    );
-    drafts[String(examId)] = {
-      questions,
-      teacher_ready: true,
-      published: Boolean(prev.published),
-      duration_minutes: prev.duration_minutes,
-      updated_at: new Date().toISOString(),
-    };
-    saveExamDrafts(drafts);
-    return { ok: true, teacher_ready: true, question_count: questions.length };
   }
 
   m = path.match(/^\/api\/portal\/exams\/(\d+)\/publish$/);
@@ -719,7 +681,6 @@ export async function dataApi(path, options = {}) {
     const examId = Number(m[1]);
     const base = examById(bundle, examId);
     if (!base) throw new Error("exam_not_found");
-    if (!isTeacherExamReady(bundle, examId)) throw new Error("teacher_not_ready");
     const body = parseBody(options);
     const drafts = loadExamDrafts();
     const prev = drafts[String(examId)] || {};
@@ -730,7 +691,6 @@ export async function dataApi(path, options = {}) {
     const duration_minutes = resolveExamDurationMinutes(bundle, base);
     drafts[String(examId)] = {
       questions,
-      teacher_ready: true,
       published: true,
       duration_minutes,
       updated_at: new Date().toISOString(),
@@ -751,7 +711,7 @@ export async function dataApi(path, options = {}) {
     const examId = Number(m[1]);
     const ex = examRecord(bundle, examId, user.role);
     if (!ex) throw new Error("exam_not_found");
-    if (user.role === "admin" || user.role === "teacher") {
+    if (user.role === "admin") {
       return {
         exam: stripQuestions(ex),
         questions: ex.questions,
@@ -855,7 +815,7 @@ export async function dataApi(path, options = {}) {
 
   m = path.match(/^\/api\/portal\/exams\/(\d+)\/send-teacher-report$/);
   if (m && method === "POST") {
-    if (!user || (user.role !== "admin" && user.role !== "teacher")) throw new Error("forbidden");
+    if (!user || user.role !== "admin") throw new Error("forbidden");
     const examId = Number(m[1]);
     const admin = await dataApi(`/api/portal/exams/${examId}/admin`, { method: "GET" });
     if (!admin.all_submitted) throw new Error("not_all_submitted");

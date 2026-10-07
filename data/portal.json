@@ -279,14 +279,6 @@
       "class_name": null
     },
     {
-      "id": 2,
-      "login": "teacher",
-      "password": "teacher123",
-      "full_name": "Абдурашид (учитель)",
-      "role": "teacher",
-      "class_name": null
-    },
-    {
       "id": 401,
       "login": "6b01",
       "password": "6b01-401",

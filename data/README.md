@@ -36,7 +36,7 @@
 }
 ```
 
-Роли: `admin`, `teacher`, `student`.
+Роли: `admin`, `student`.
 
 ## Класс 6Б (19 учеников)
 
