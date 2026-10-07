@@ -1242,7 +1242,6 @@ li.student-row .student-row-meta {
 .panel-notify .notify-summary {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: 12px;
   cursor: pointer;
   list-style: none;
@@ -1254,35 +1253,51 @@ li.student-row .student-row-meta {
 }
 
 .panel-notify .notify-summary::marker {
+  display: none;
   content: "";
 }
 
 .panel-notify .notify-summary-main {
   margin-bottom: 0;
-  flex-shrink: 0;
-}
-
-.panel-notify .notify-summary-meta {
-  font-size: 0.88rem;
-  text-align: right;
   flex: 1;
   min-width: 0;
+}
+
+.panel-notify .notify-summary-count {
+  font-size: 0.88rem;
   white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.panel-notify .notify-summary::after {
-  content: "›";
-  color: var(--muted);
-  font-size: 1.1rem;
   flex-shrink: 0;
-  transform: rotate(0deg);
-  transition: transform 0.15s ease;
 }
 
-.panel-notify .notify-disclosure[open] .notify-summary::after {
-  transform: rotate(90deg);
+.panel-notify .notify-chevron {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  margin-left: auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--muted);
+  background: color-mix(in srgb, var(--border) 30%, transparent);
+  transition:
+    transform 0.15s ease,
+    background 0.15s ease,
+    color 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.panel-notify .notify-summary:hover .notify-chevron {
+  color: var(--text);
+  border-color: color-mix(in srgb, var(--accent) 40%, var(--border));
+  background: var(--ghost-hover);
+}
+
+.panel-notify .notify-disclosure[open] .notify-chevron {
+  transform: rotate(180deg);
+  color: var(--accent);
+  border-color: color-mix(in srgb, var(--accent) 45%, var(--border));
 }
 
 .panel-notify .notify-body {

@@ -151,21 +151,24 @@ function renderNotifyRecipientsPanel(expanded = isNotifyRecipientsPanelOpen()) {
     : `<p class="muted notify-empty">Получателей пока нет — добавьте Telegram ID или email ниже.</p>`;
   const atMax = contacts.length >= NOTIFY_RECIPIENTS_MAX;
   const openAttr = expanded ? " open" : "";
-  const summaryMeta =
+  const summaryCount =
     contacts.length > 0
-      ? `Добавлено ${contacts.length} из ${NOTIFY_RECIPIENTS_MAX}`
-      : `До ${NOTIFY_RECIPIENTS_MAX} · Telegram ID или email`;
+      ? `<span class="muted notify-summary-count">${contacts.length} из ${NOTIFY_RECIPIENTS_MAX}</span>`
+      : "";
   return `<div class="panel panel-demo panel-notify" id="panel-notify">
     <details class="notify-disclosure"${openAttr}>
-      <summary class="notify-summary">
+      <summary class="notify-summary" aria-label="Уведомления о сдаче, нажмите чтобы раскрыть">
         <span class="notify-summary-main panel-demo-head">
           <h3>Уведомления о сдаче</h3>
           <span class="tag tag-demo">Демо</span>
         </span>
-        <span class="muted notify-summary-meta">${escapeHtml(summaryMeta)}</span>
+        ${summaryCount}
+        <span class="notify-chevron" aria-hidden="true">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+        </span>
       </summary>
       <div class="notify-body">
-        <p class="lead muted">До ${NOTIFY_RECIPIENTS_MAX} получателей. В одном поле — Telegram ID или email. Сохраняется в браузере; отправка будет позже.</p>
+        <p class="lead muted">До ${NOTIFY_RECIPIENTS_MAX} получателей — Telegram ID или email в одном поле. Сохраняется в браузере; отправка будет позже.</p>
         ${listHtml}
         <div class="notify-add-row">
           <label class="field notify-add-field">
