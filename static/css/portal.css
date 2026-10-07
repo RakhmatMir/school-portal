@@ -1240,33 +1240,40 @@ li.student-row .student-row-meta {
 }
 
 .panel-notify .notify-summary {
-  display: flex;
-  align-items: center;
-  gap: 12px;
+  display: block;
   cursor: pointer;
   list-style: none;
+  list-style-type: none;
   user-select: none;
 }
 
-.panel-notify .notify-summary::-webkit-details-marker {
-  display: none;
-}
-
+.panel-notify .notify-summary::-webkit-details-marker,
 .panel-notify .notify-summary::marker {
-  display: none;
-  content: "";
+  display: none !important;
+  content: "" !important;
+  font-size: 0;
+  width: 0;
+  height: 0;
 }
 
-.panel-notify .notify-summary-main {
-  margin-bottom: 0;
-  flex: 1;
-  min-width: 0;
+.panel-notify .notify-summary-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 2.25rem;
+}
+
+.panel-notify .notify-summary-title {
+  margin: 0;
+  font-size: 1.05rem;
+  flex: 0 1 auto;
 }
 
 .panel-notify .notify-summary-count {
   font-size: 0.88rem;
   white-space: nowrap;
   flex-shrink: 0;
+  margin-left: auto;
 }
 
 .panel-notify .notify-chevron {
@@ -1274,30 +1281,29 @@ li.student-row .student-row-meta {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 2.25rem;
-  height: 2.25rem;
+  width: 2rem;
+  height: 2rem;
   margin-left: auto;
-  border: 1px solid var(--border);
   border-radius: 8px;
   color: var(--muted);
-  background: color-mix(in srgb, var(--border) 30%, transparent);
   transition:
     transform 0.15s ease,
-    background 0.15s ease,
     color 0.15s ease,
-    border-color 0.15s ease;
+    background 0.15s ease;
+}
+
+.panel-notify .notify-summary-count + .notify-chevron {
+  margin-left: 0;
 }
 
 .panel-notify .notify-summary:hover .notify-chevron {
-  color: var(--text);
-  border-color: color-mix(in srgb, var(--accent) 40%, var(--border));
+  color: var(--accent);
   background: var(--ghost-hover);
 }
 
 .panel-notify .notify-disclosure[open] .notify-chevron {
   transform: rotate(180deg);
   color: var(--accent);
-  border-color: color-mix(in srgb, var(--accent) 45%, var(--border));
 }
 
 .panel-notify .notify-body {
