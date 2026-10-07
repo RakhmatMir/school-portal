@@ -7,6 +7,12 @@
       "test_count": 3
     }
   ],
+  "class_schedules": {
+    "6Б": {
+      "total_minutes": 45,
+      "bundle_published": true
+    }
+  },
   "subjects": [
     {
       "code": "math",

@@ -123,25 +123,26 @@ function classExamBundleList(bundle, className) {
     .sort((a, b) => (order[a.subject_code] ?? 99) - (order[b.subject_code] ?? 99));
 }
 
-function isClassBundlePublished(className) {
-  const row = loadExamSchedules()[className];
-  if (row?.bundle_published) return true;
-  return false;
-}
-
-function getClassExamSchedule(className) {
-  const all = loadExamSchedules();
-  const row = all[className];
-  const total_minutes = Number(row?.total_minutes) || 45;
+function getClassExamSchedule(className, bundle) {
+  const defaults = bundle?.class_schedules?.[className] || {};
+  const local = loadExamSchedules()[className] || {};
+  const total_minutes =
+    Number(local.total_minutes) || Number(defaults.total_minutes) || 45;
+  const bundle_published =
+    Boolean(defaults.bundle_published) || Boolean(local.bundle_published);
   return {
     total_minutes,
-    bundle_published: Boolean(row?.bundle_published),
+    bundle_published,
   };
+}
+
+function isClassBundlePublished(className, bundle) {
+  return getClassExamSchedule(className, bundle).bundle_published;
 }
 
 function classBundleTiming(bundle, className) {
   const exams = classExamBundleList(bundle, className);
-  const schedule = getClassExamSchedule(className);
+  const schedule = getClassExamSchedule(className, bundle);
   const test_count = exams.length || 1;
   const minutes_per_test = Math.max(5, Math.floor(schedule.total_minutes / test_count));
   return {
@@ -194,7 +195,7 @@ function resolveExamDurationMinutes(bundle, examRow) {
 }
 
 function nextBundleExamIdForStudent(bundle, className, userId, submissions) {
-  if (!isClassBundlePublished(className)) return null;
+  if (!isClassBundlePublished(className, bundle)) return null;
   for (const ex of classExamBundleList(bundle, className)) {
     if (!getSubmission(submissions, ex.id, userId)) return ex.id;
   }
@@ -228,7 +229,7 @@ function isExamPublishedToStudents(bundle, examId) {
   const inBundle = classExamBundleList(bundle, base.class_name).some(
     (e) => Number(e.id) === Number(examId)
   );
-  if (inBundle) return isClassBundlePublished(base.class_name);
+  if (inBundle) return isClassBundlePublished(base.class_name, bundle);
   const draft = getExamDraft(examId);
   if (!draft) return false;
   return Boolean(draft.published);
@@ -695,7 +696,7 @@ export async function dataApi(path, options = {}) {
         updated_at: draft?.updated_at || null,
         duration_minutes: resolveExamDurationMinutes(bundle, examById(bundle, examId)),
       },
-      exam_timing: getClassExamSchedule(ex.class_name),
+      exam_timing: getClassExamSchedule(ex.class_name, bundle),
     };
   }
 
@@ -813,7 +814,7 @@ export async function dataApi(path, options = {}) {
     const questions = normalizeExamQuestions(
       body.questions || prev.questions || base.questions
     );
-    const schedule = getClassExamSchedule(base.class_name);
+    const schedule = getClassExamSchedule(base.class_name, bundle);
     const duration_minutes = resolveExamDurationMinutes(bundle, base);
     drafts[String(examId)] = {
       questions,

@@ -1,4 +1,4 @@
-import { dataApi, demoAuthApi } from "./portal-data.js?v=88";
+import { dataApi, demoAuthApi } from "./portal-data.js?v=89";
 
 const $ = (id) => document.getElementById(id);
 
@@ -564,6 +564,24 @@ async function loadStudentCompletedTests(fromSubjectsPayload) {
 
 function useSiteData() {
   return Boolean(location.hostname.endsWith("github.io") || window.PORTAL_USE_STATIC_DATA);
+}
+
+const PORTAL_SUBMISSIONS_KEY = "portal_site_submissions_v1";
+
+/** Только для проверки сайта: ?portal_dev=clear очищает сдачи в этом браузере (без кнопки в UI). */
+function maybeDevClearSubmissionsFromUrl() {
+  if (!useSiteData()) return;
+  const params = new URLSearchParams(location.search);
+  if (params.get("portal_dev") !== "clear") return;
+  try {
+    localStorage.removeItem(PORTAL_SUBMISSIONS_KEY);
+  } catch {
+    /* ignore */
+  }
+  params.delete("portal_dev");
+  const qs = params.toString();
+  const next = `${location.pathname}${qs ? `?${qs}` : ""}${location.hash}`;
+  history.replaceState(null, "", next);
 }
 
 async function api(path, options = {}) {
@@ -3136,5 +3154,6 @@ $("student-confirm-backdrop")?.addEventListener("click", () => closeStudentConfi
 syncThemeIcons();
 
 initScrollTopButton();
+maybeDevClearSubmissionsFromUrl();
 await loadLanding();
 await tryRestoreSession();
