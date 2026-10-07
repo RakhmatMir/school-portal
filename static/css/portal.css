@@ -262,6 +262,15 @@ body {
   font: inherit;
 }
 
+.panel-student-bundle .student-reset-hint {
+  margin: 10px 0 0;
+  font-size: 0.9rem;
+}
+
+.panel-student-bundle #btn-reset-exam-bundle-demo {
+  margin-top: 14px;
+}
+
 .exam-guard-dialog .exam-guard-reason {
   margin: 0 0 8px;
 }
