@@ -1102,8 +1102,31 @@ li.student-row .student-row-meta {
   gap: 10px;
 }
 
-.panel-admin-tests .btn-save-timing-inline {
-  margin-left: 4px;
+.panel-admin-tests .btn-timing-confirm {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.1rem;
+  height: 2.1rem;
+  padding: 0;
+  margin-left: 2px;
+  border: 1px solid color-mix(in srgb, var(--accent) 55%, var(--border));
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--accent) 18%, var(--card));
+  color: var(--accent);
+  font-size: 1.15rem;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.panel-admin-tests .btn-timing-confirm:hover {
+  background: color-mix(in srgb, var(--accent) 28%, var(--card));
+}
+
+.panel-admin-tests .btn-timing-confirm:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .admin-timing-subjects {

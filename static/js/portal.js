@@ -2200,7 +2200,7 @@ function renderAdminTestsPanel(className, schedule, bundleData) {
         <span>Общее время</span>
         <input type="number" id="admin-timing-total" class="admin-timing-input" min="15" max="300" step="1" inputmode="numeric" value="${sch.total_minutes ?? 45}" />
         <span class="muted">мин</span>
-        <button type="button" class="btn-secondary btn-save-timing-inline" id="btn-save-exam-timing" hidden>Сохранить</button>
+        <button type="button" class="btn-timing-confirm" id="btn-save-exam-timing" hidden title="Сохранить время" aria-label="Сохранить время">✓</button>
       </label>
       <p class="muted" id="admin-timing-preview" data-test-count="${count}"></p>
       <p class="muted admin-timing-msg" id="admin-timing-msg" hidden></p>
