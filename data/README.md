@@ -38,6 +38,10 @@
 
 Роли: `admin`, `student`.
 
+## Сброс сдач при проверке сайта (не для учеников)
+
+Ответы учеников на GitHub Pages лежат в браузере: ключ `portal_site_submissions_v1`. В интерфейсе повторная сдача отключена. Для своих тестов очистите этот ключ в DevTools → Application → Local Storage или выполните в консоли: `localStorage.removeItem('portal_site_submissions_v1')` и обновите страницу.
+
 ## Класс 6Б (19 учеников)
 
 Полный список логинов: [`6b-student-logins.txt`](6b-student-logins.txt).

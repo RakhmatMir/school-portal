@@ -1,4 +1,4 @@
-import { dataApi, demoAuthApi } from "./portal-data.js?v=87";
+import { dataApi, demoAuthApi } from "./portal-data.js?v=88";
 
 const $ = (id) => document.getElementById(id);
 
@@ -37,7 +37,6 @@ const portalState = {
   staffTestsShortcut: false,
   /** Не открывать единственный тест сразу (кнопка «Назад» / крошки). */
   suppressSingleExamAutoload: false,
-  studentBundleMode: false,
 };
 window.portalState = portalState;
 
@@ -1739,36 +1738,6 @@ function mountStudentTestRunner(container, preview, examId) {
     try {
       await submitStudentExam(examId, qCount);
       clearStudentExamRunLocalState(examId);
-      if (portalState.studentBundleMode) {
-        try {
-          const bundle = await api("/api/portal/my/exam-bundle");
-          if (bundle.next_exam_id) {
-            const nextMeta = (bundle.tests || []).find((t) => t.exam_id === bundle.next_exam_id);
-            const nextTitle = nextMeta?.subject_title || nextMeta?.title || "следующий тест";
-            const ok = await showStudentConfirmModal({
-              title: `Готовы к тесту: ${nextTitle}?`,
-              description: `Вы завершили предыдущий предмет. Сейчас начнётся «${nextTitle}». На этот тест отведено около ${bundle.minutes_per_test} мин. Нажмите «Начать», когда будете готовы.`,
-              confirmLabel: "Начать тест",
-              cancelLabel: "Пауза на главной",
-            });
-            if (!ok) {
-              submitting = false;
-              portalState.studentBundleMode = false;
-              portalState.adminView = "home";
-              portalState.examId = null;
-              await renderStudentFlow();
-              return;
-            }
-            portalState.adminView = "exam";
-            portalState.examId = bundle.next_exam_id;
-            await renderStudentFlow();
-            return;
-          }
-        } catch {
-          /* fall through to home */
-        }
-        portalState.studentBundleMode = false;
-      }
       portalState.adminView = "home";
       portalState.examId = null;
       portalState.subjectCode = null;
@@ -2289,7 +2258,7 @@ function renderAdminClassHubPanel(className, schedule, bundleData, subjects) {
         .join("");
   return `<section class="panel panel-admin-class-hub panel-admin-tests" id="admin-tests-panel">
     <h3 class="class-detail-title">Класс ${escapeHtml(className)}</h3>
-    <p class="lead muted">Тесты сдаются подряд: математика → русский → английский.</p>
+    <p class="lead muted">Ученик сам выбирает, какой тест сдать. Каждый тест можно сдать один раз.</p>
     <div class="admin-tests-timing-block">
       <p class="muted">Общее время на все тесты (делится поровну): <strong>${count}</strong> тест(а) · ≈ <strong id="admin-timing-per-test">${perTest}</strong> мин на каждый.</p>
       <label class="admin-timing-total">
@@ -2308,16 +2277,6 @@ function renderAdminClassHubPanel(className, schedule, bundleData, subjects) {
       <button type="button" class="btn-primary" id="btn-publish-exam-bundle"${published ? " hidden" : ""}>Опубликовать для учеников</button>
     </div>
     <p class="muted admin-bundle-msg" id="admin-bundle-msg" hidden></p>
-    <div class="admin-demo-reset">
-      <p class="muted">Демо: сброс только в <strong>этом браузере</strong> (общий localStorage). Если ученик сдавал с другого устройства — пусть нажмёт «Пройти экзамен заново» в своём кабинете.</p>
-      <div class="field-inline">
-        <label class="field-inline">Логин
-          <input type="text" id="admin-reset-student-login" value="6b01" autocomplete="off" />
-        </label>
-        <button type="button" class="btn-secondary" id="btn-admin-reset-student">Сбросить прогресс</button>
-      </div>
-      <p class="muted" id="admin-reset-student-msg" hidden></p>
-    </div>
   </section>`;
 }
 
@@ -2410,126 +2369,89 @@ function bindAdminTestsPanel(main, className) {
     }
   });
 
-  const resetBtn = panel.querySelector("#btn-admin-reset-student");
-  const resetLogin = panel.querySelector("#admin-reset-student-login");
-  const resetMsg = panel.querySelector("#admin-reset-student-msg");
-  resetBtn?.addEventListener("click", async () => {
-    const login = String(resetLogin?.value || "").trim();
-    if (!login) return;
-    resetBtn.disabled = true;
-    if (resetMsg) {
-      resetMsg.hidden = true;
-      resetMsg.classList.remove("error");
-    }
-    try {
-      const data = await api("/api/portal/admin/reset-student-progress", {
-        method: "POST",
-        body: JSON.stringify({ login }),
-      });
-      clearLocalExamArtifactsForIds(data.exam_ids);
-      if (resetMsg) {
-        resetMsg.hidden = false;
-        const n = data.cleared ?? 0;
-        resetMsg.textContent =
-          n > 0
-            ? `Сброшено ${n} сдач для ${data.full_name || login} в этом браузере. Обновите кабинет ученика (F5).`
-            : `В этом браузере сдач для ${data.full_name || login} не найдено. Ученик должен нажать «Пройти экзамен заново» в своём кабинете на том устройстве, где сдавал.`;
-      }
-    } catch {
-      if (resetMsg) {
-        resetMsg.hidden = false;
-        resetMsg.classList.add("error");
-        resetMsg.textContent = "Не удалось сбросить. Проверьте логин (например 6b01).";
-      }
-    } finally {
-      resetBtn.disabled = false;
-    }
-  });
 }
 
 function renderStudentExamBundlePanel(bundle) {
   if (!bundle?.test_count) {
     return `<div class="panel"><p class="muted">Тесты для класса пока не назначены.</p></div>`;
   }
-  const steps = (bundle.tests || [])
+  const testRows = (bundle.tests || [])
     .map((t, i) => {
-      const mark = t.submitted ? "✓" : bundle.next_exam_id === t.exam_id ? "→" : "○";
-      return `<li><span class="bundle-step-mark">${mark}</span> ${escapeHtml(t.subject_title || `Тест ${i + 1}`)}</li>`;
+      const subject = escapeHtml(t.subject_title || `Тест ${i + 1}`);
+      const title = escapeHtml(t.title || "");
+      const mins = t.duration_minutes ?? bundle.minutes_per_test;
+      if (t.submitted) {
+        return `<li class="student-bundle-test is-done">
+      <span class="bundle-step-mark">✓</span>
+      <span class="row-link-main">${subject}</span>
+      <span class="muted">Сдан</span>
+    </li>`;
+      }
+      if (!bundle.published) {
+        return `<li class="student-bundle-test">
+      <span class="bundle-step-mark">○</span>
+      <span class="row-link-main">${subject}</span>
+      <span class="muted">≈ ${mins} мин</span>
+    </li>`;
+      }
+      return `<li class="row-link student-bundle-pick" role="button" tabindex="0" data-exam-id="${t.exam_id}">
+      <span class="bundle-step-mark">→</span>
+      <span class="row-link-main">${subject}</span>
+      <span class="muted student-bundle-pick-meta">${title ? `${title} · ` : ""}≈ ${mins} мин</span>
+    </li>`;
     })
     .join("");
+  const pendingCount = (bundle.tests || []).filter((t) => !t.submitted).length;
   if (!bundle.published) {
     return `<section class="panel panel-student-bundle">
-      <h3>Экзамен (${bundle.test_count} теста)</h3>
-      <p class="muted">Ждём публикации администрацией. Всего будет ${bundle.total_minutes} мин (${bundle.minutes_per_test} мин на каждый тест).</p>
-      <ol class="list-plain bundle-steps">${steps}</ol>
+      <h3>Тесты класса (${bundle.test_count})</h3>
+      <p class="muted">Ждём публикации администрацией. На каждый тест около ${bundle.minutes_per_test} мин.</p>
+      <ul class="list-plain bundle-steps student-bundle-tests">${testRows}</ul>
     </section>`;
   }
   if (bundle.all_submitted) {
     return `<section class="panel panel-student-bundle">
-      <h3>Экзамен сдан</h3>
-      <p class="muted">Вы прошли все ${bundle.test_count} теста. Результаты появятся, когда сдадут все в классе.</p>
-      <ol class="list-plain bundle-steps">${steps}</ol>
-      <button type="button" class="btn-secondary" id="btn-reset-exam-bundle-demo">Пройти экзамен заново (демо)</button>
-      <p class="muted student-reset-hint">Сбрасывает ваши ответы только в этом браузере и позволяет сдать тесты снова.</p>
+      <h3>Все тесты сданы</h3>
+      <p class="muted">Вы сдали все ${bundle.test_count} теста. Повторно сдать нельзя. Результаты появятся, когда сдадут все в классе.</p>
+      <ul class="list-plain bundle-steps student-bundle-tests">${testRows}</ul>
     </section>`;
   }
-  const cta = bundle.next_exam_id ? "Продолжить экзамен" : "Начать экзамен";
   return `<section class="panel panel-student-bundle">
-    <h3>Экзамен (${bundle.test_count} теста подряд)</h3>
-    <p class="lead muted">${bundle.total_minutes} мин всего · ${bundle.minutes_per_test} мин на каждый тест. Перед стартом и перед каждым следующим предметом нужно подтвердить готовность.</p>
-    <ol class="list-plain bundle-steps">${steps}</ol>
-    <button type="button" class="btn-primary" id="btn-start-exam-bundle">${escapeHtml(cta)}</button>
+    <h3>Выберите тест</h3>
+    <p class="lead muted">Сдайте ${pendingCount} из ${bundle.test_count} тестов. Каждый предмет — один раз. Перед стартом нужно подтвердить готовность.</p>
+    <ul class="list-plain bundle-steps student-bundle-tests">${testRows}</ul>
   </section>`;
 }
 
 function bindStudentExamBundlePanel(main, bundle) {
-  const redoBtn = main.querySelector("#btn-reset-exam-bundle-demo");
-  redoBtn?.addEventListener("click", async () => {
-    if (blockActionIfExamActive()) return;
-    const ok = await showStudentConfirmModal({
-      title: "Пройти экзамен заново?",
-      description:
-        "Ваши ответы по этому экзамену в этом браузере будут удалены. Администратор увидит только новую сдачу после повторного прохождения. Продолжить?",
-      confirmLabel: "Сбросить и начать",
-      cancelLabel: "Отмена",
-    });
-    if (!ok) return;
-    redoBtn.disabled = true;
-    try {
-      const data = await api("/api/portal/my/reset-exam-bundle", { method: "POST", body: "{}" });
-      clearLocalExamArtifactsForIds(data.exam_ids);
-      portalState.studentBundleMode = false;
-      portalState.adminView = "home";
-      portalState.examId = null;
-      portalState.highlightResultExamId = null;
-      await renderStudentFlow();
-    } catch {
-      redoBtn.disabled = false;
-      await showStudentConfirmModal({
-        title: "Не удалось сбросить",
-        description: "Обновите страницу (Ctrl+F5) и попробуйте снова.",
-        confirmLabel: "Понятно",
-        cancelLabel: "Закрыть",
+  if (!bundle?.published) return;
+  main.querySelectorAll(".student-bundle-pick[data-exam-id]").forEach((row) => {
+    const openTest = async () => {
+      if (blockActionIfExamActive()) return;
+      const examId = Number(row.getAttribute("data-exam-id"));
+      if (!Number.isFinite(examId)) return;
+      const meta = (bundle.tests || []).find((x) => x.exam_id === examId);
+      const subject = meta?.subject_title || meta?.title || "тест";
+      const mins = meta?.duration_minutes ?? bundle.minutes_per_test ?? "";
+      const ok = await showStudentConfirmModal({
+        title: `Готовы к тесту: ${subject}?`,
+        description: `На этот тест около ${mins} мин. После сдачи повторно пройти его нельзя. Ответы сохраняются для учителя и администрации.`,
+        confirmLabel: "Начать тест",
+        cancelLabel: "Ещё не готов",
       });
-    }
-  });
-
-  const btn = main.querySelector("#btn-start-exam-bundle");
-  if (!btn || !bundle?.next_exam_id) return;
-  btn.addEventListener("click", async () => {
-    if (blockActionIfExamActive()) return;
-    const ok = await showStudentConfirmModal({
-      title: "Готовы начать экзамен?",
-      description: `Будет ${bundle.test_count} теста подряд, около ${bundle.minutes_per_test} мин на каждый. Между предметами можно сделать паузу и подтвердить готовность к следующему тесту. Ответы сохраняются для учителя и администрации.`,
-      confirmLabel: "Начать экзамен",
-      cancelLabel: "Ещё не готов",
+      if (!ok) return;
+      portalState.adminView = "exam";
+      portalState.examId = examId;
+      portalState.studentExamReturnHome = true;
+      renderStudentFlow();
+    };
+    row.addEventListener("click", () => openTest());
+    row.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        openTest();
+      }
     });
-    if (!ok) return;
-    portalState.studentBundleMode = true;
-    portalState.adminView = "exam";
-    portalState.examId = bundle.next_exam_id;
-    portalState.studentExamReturnHome = true;
-    renderStudentFlow();
   });
 }
 

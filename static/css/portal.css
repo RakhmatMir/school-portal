@@ -262,13 +262,32 @@ body {
   font: inherit;
 }
 
-.panel-student-bundle .student-reset-hint {
-  margin: 10px 0 0;
-  font-size: 0.9rem;
+.student-bundle-tests .student-bundle-test,
+.student-bundle-tests .student-bundle-pick {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
 }
 
-.panel-student-bundle #btn-reset-exam-bundle-demo {
-  margin-top: 14px;
+.student-bundle-tests .student-bundle-test.is-done {
+  opacity: 0.85;
+}
+
+.student-bundle-tests .bundle-step-mark {
+  flex: 0 0 auto;
+  width: 1.25rem;
+  text-align: center;
+}
+
+.student-bundle-tests .row-link-main {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.student-bundle-pick-meta {
+  flex: 0 1 auto;
+  text-align: right;
 }
 
 .exam-guard-dialog .exam-guard-reason {

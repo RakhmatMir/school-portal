@@ -754,10 +754,12 @@ export async function dataApi(path, options = {}) {
     const ordered = classExamBundleList(bundle, cls);
     const tests = ordered.map((ex) => {
       const sub = getSubmission(submissions, ex.id, user.id);
+      const mins = resolveExamDurationMinutes(bundle, ex);
       return {
         exam_id: ex.id,
         title: ex.title,
         subject_title: ex.subject_title,
+        duration_minutes: mins,
         submitted: sub !== null,
       };
     });
@@ -909,6 +911,7 @@ export async function dataApi(path, options = {}) {
     const durationSec = questionTimes.reduce((a, b) => a + b, 0);
     const durationLabel = durationSec > 0 ? formatSecondsLabel(durationSec) : "10:42";
     const map = loadSubmissions();
+    if (getSubmission(map, examId, user.id)) throw new Error("already_submitted");
     map[submissionKey(examId, user.id)] = {
       score_percent: score,
       correct_count: correct,
@@ -937,6 +940,7 @@ export async function dataApi(path, options = {}) {
     };
   }
 
+  /** Сброс сдач — только для ручной проверки (консоль / тесты), не для UI. */
   if (path === "/api/portal/my/reset-exam-bundle" && method === "POST") {
     if (!user || user.role !== "student") throw new Error("forbidden");
     const cls = user.class_name || "6Б";
