@@ -2183,30 +2183,6 @@ function applyTeacherExamEditorActions(panel, flags) {
   if (actions) actions.hidden = !flags.showSaveDraft;
 }
 
-function teacherExamPreviewPayload(examMeta, questions) {
-  return {
-    exam: {
-      title: examMeta?.title || "Тест",
-      catalog_key: "todo",
-      duration_minutes: examMeta?.duration_minutes,
-      subject_title: examMeta?.subject_title,
-    },
-    questions,
-    show_answers: true,
-    submitted: false,
-    score_percent: null,
-  };
-}
-
-function renderTeacherExamLivePreviewHtml(examMeta, questions) {
-  const preview = teacherExamPreviewPayload(examMeta, questions);
-  return renderDemoTestPanel(preview, {
-    interactive: false,
-    title: "Просмотр на месте",
-    innerOnly: true,
-  });
-}
-
 function subjectCodeForBundleExam(exam, subjects) {
   if (exam?.subject_code) return exam.subject_code;
   const title = exam?.subject_title;
@@ -2437,17 +2413,11 @@ function renderTeacherExamEditorPanel(questions, editorMeta, examMeta) {
       <h3>Проверка теста</h3>
     </div>
     <p class="lead muted">Исправьте опечатки в вопросах и вариантах ответов и сохраните черновик. Публикация всего комплекта — на главной. Сейчас ≈ <strong>${escapeHtml(String(mins))} мин</strong> на этот тест (общее время делится на число тестов).</p>
-    <div class="teacher-exam-editor-layout">
-      <div class="teacher-exam-editor-main">
-        <div class="teacher-q-edit-list">${cards}</div>
-        <div class="teacher-exam-editor-actions"${initialFlags.showSaveDraft ? "" : " hidden"}>
-          <button type="button" class="btn-secondary" id="btn-save-exam-draft"${initialFlags.showSaveDraft ? "" : " hidden"}>Сохранить черновик</button>
-        </div>
+    <div class="teacher-exam-editor-main">
+      <div class="teacher-q-edit-list">${cards}</div>
+      <div class="teacher-exam-editor-actions"${initialFlags.showSaveDraft ? "" : " hidden"}>
+        <button type="button" class="btn-secondary" id="btn-save-exam-draft"${initialFlags.showSaveDraft ? "" : " hidden"}>Сохранить черновик</button>
       </div>
-      <aside class="teacher-exam-live-preview" aria-label="Просмотр теста">
-        <h4 class="teacher-exam-live-preview-title">Просмотр на месте</h4>
-        <div id="teacher-exam-live-preview">${renderTeacherExamLivePreviewHtml(examMeta, questions)}</div>
-      </aside>
     </div>
     <p class="muted teacher-exam-editor-hint" id="exam-editor-msg" hidden></p>
   </section>`;
@@ -2492,8 +2462,6 @@ function bindTeacherExamEditor(main, examId, examMeta, initialQuestions, editorM
   const panel = main.querySelector("#teacher-exam-editor");
   if (!panel) return;
   const saveBtn = panel.querySelector("#btn-save-exam-draft");
-  const previewRoot = panel.querySelector("#teacher-exam-live-preview");
-  let previewTimer = null;
   let baselineQuestions = initialQuestions || [];
   const editorUiState = () => ({});
 
@@ -2504,23 +2472,11 @@ function bindTeacherExamEditor(main, examId, examMeta, initialQuestions, editorM
     return flags;
   };
 
-  const refreshLivePreview = () => {
-    if (!previewRoot) return;
-    const questions = collectTeacherExamQuestionsFromEditor(panel);
-    previewRoot.innerHTML = renderTeacherExamLivePreviewHtml(examMeta, questions);
-    syncEditorActions();
-  };
-
   panel.querySelectorAll(".teacher-q-text, .teacher-q-opt-input").forEach((el) => {
-    el.addEventListener("input", () => {
-      clearTimeout(previewTimer);
-      previewTimer = setTimeout(refreshLivePreview, 180);
-    });
+    el.addEventListener("input", () => syncEditorActions());
   });
   panel.querySelectorAll('input[type="radio"]').forEach((el) => {
-    el.addEventListener("change", () => {
-      refreshLivePreview();
-    });
+    el.addEventListener("change", () => syncEditorActions());
   });
 
   saveBtn?.addEventListener("click", async () => {

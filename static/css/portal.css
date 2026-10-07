@@ -961,35 +961,6 @@ li.student-row .student-row-meta {
   border-color: color-mix(in srgb, var(--accent) 40%, var(--border));
 }
 
-.teacher-exam-editor-layout {
-  display: grid;
-  grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
-  gap: 18px;
-  align-items: start;
-}
-
-@media (max-width: 960px) {
-  .teacher-exam-editor-layout {
-    grid-template-columns: 1fr;
-  }
-}
-
-.teacher-exam-live-preview {
-  position: sticky;
-  top: 12px;
-  max-height: min(78vh, 720px);
-  overflow: auto;
-  padding: 12px 14px;
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  background: color-mix(in srgb, var(--stat-bg) 35%, var(--card));
-}
-
-.teacher-exam-live-preview-title {
-  margin: 0 0 10px;
-  font-size: 0.95rem;
-}
-
 .teacher-q-edit-list {
   display: flex;
   flex-direction: column;
