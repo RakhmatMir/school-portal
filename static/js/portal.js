@@ -1,4 +1,4 @@
-import { dataApi, demoAuthApi } from "./portal-data.js?v=85";
+import { dataApi, demoAuthApi } from "./portal-data.js?v=86";
 
 const $ = (id) => document.getElementById(id);
 
@@ -2921,7 +2921,6 @@ async function renderStudentFlow() {
     const bundleBlock = renderStudentExamBundlePanel(bundle);
     const resultsBlock = renderStudentCompletedTestsBlock(completedTests, highlightId);
     main.innerHTML = `
-      <span class="badge">${escapeHtml(ROLE_LABEL.student)}</span>
       <div class="panel">
         <h3>${escapeHtml(u.full_name)}</h3>
         <p class="lead">${escapeHtml(session.school_name)} · класс ${escapeHtml(data.class_name)}</p>
