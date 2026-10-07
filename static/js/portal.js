@@ -45,22 +45,12 @@ const AUTH_API_PATHS = new Set(["/api/login", "/api/logout", "/api/me"]);
 
 const NOTIFY_RECIPIENTS_KEY = "portal_demo_notify_v2";
 const NOTIFY_RECIPIENTS_MAX = 4;
-const NOTIFY_PANEL_EXPANDED_KEY = "portal_notify_expanded_v1";
-
 function isNotifyRecipientsPanelOpen() {
-  try {
-    return localStorage.getItem(NOTIFY_PANEL_EXPANDED_KEY) === "1";
-  } catch {
-    return false;
-  }
+  return false;
 }
 
-function setNotifyRecipientsPanelOpen(open) {
-  try {
-    localStorage.setItem(NOTIFY_PANEL_EXPANDED_KEY, open ? "1" : "0");
-  } catch {
-    /* ignore */
-  }
+function setNotifyRecipientsPanelOpen(_open) {
+  /* collapsed by default on each visit; stays open only until reload via <details> toggle */
 }
 const EXAM_SESSION_KEY = "portal_demo_exam_sessions_v1";
 
