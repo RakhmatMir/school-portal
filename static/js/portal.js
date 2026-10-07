@@ -36,6 +36,8 @@ const portalState = {
   openExamAsReview: false,
   studentExamReturnHome: false,
   staffTestsShortcut: false,
+  /** Не открывать единственный тест сразу (кнопка «Назад» / крошки). */
+  suppressSingleExamAutoload: false,
 };
 window.portalState = portalState;
 
@@ -1809,6 +1811,7 @@ function navigateBreadcrumb(level) {
       portalState.adminView = "subject";
       portalState.examId = null;
       portalState.examTitle = null;
+      portalState.suppressSingleExamAutoload = true;
     }
     renderAdminFlow();
     return;
@@ -1861,9 +1864,6 @@ function buildBreadcrumbItems() {
       return items;
     }
     if (portalState.adminView === "exam") {
-      if (portalState.subjectTitle) {
-        items.push({ level: "subject", label: portalState.subjectTitle, link: true });
-      }
       items.push({
         level: "current",
         label: portalState.examTitle || "Контрольная",
@@ -2044,6 +2044,7 @@ async function renderAdminClassSubjects(main) {
     portalState.subjectCode = el.getAttribute("data-subject-code");
     const sub = data.subjects.find((s) => s.code === portalState.subjectCode);
     portalState.subjectTitle = sub ? sub.title : portalState.subjectCode;
+    portalState.suppressSingleExamAutoload = false;
     renderAdminFlow();
   });
   updateBreadcrumbs();
@@ -2054,7 +2055,9 @@ async function renderAdminSubjectTests(main) {
   const code = portalState.subjectCode;
   const data = await api(`/api/portal/class/${encPath(cls)}/subjects/${code}/tests`);
   portalState.subjectTitle = data.subject_title || portalState.subjectTitle;
-  if (data.tests.length === 1) {
+  const suppressAutoload = portalState.suppressSingleExamAutoload;
+  portalState.suppressSingleExamAutoload = false;
+  if (data.tests.length === 1 && !suppressAutoload) {
     const only = data.tests[0];
     portalState.adminView = "exam";
     portalState.examId = only.id;
@@ -2618,6 +2621,7 @@ async function renderAdminExamDetail(main) {
     backTestsBtn.textContent = "← На главную";
   }
   backTestsBtn?.addEventListener("click", () => {
+    if (blockActionIfExamActive()) return;
     if (portalState.staffTestsShortcut) {
       portalState.staffTestsShortcut = false;
       portalState.adminView = "home";
@@ -2630,6 +2634,7 @@ async function renderAdminExamDetail(main) {
       portalState.adminView = "subject";
       portalState.examId = null;
       portalState.examTitle = null;
+      portalState.suppressSingleExamAutoload = true;
     }
     renderAdminFlow();
   });
@@ -2740,6 +2745,9 @@ async function renderStudentExamPreview(main) {
 async function renderAdminFlow() {
   const main = $("app-main");
   main.innerHTML = `<p class="muted">Загрузка…</p>`;
+  if (portalState.adminView !== "exam" || portalState.examId == null) {
+    setTestTakingActive(false);
+  }
   try {
     if (portalState.adminView === "home") {
       await renderAdminHome(main, portalState.session);
