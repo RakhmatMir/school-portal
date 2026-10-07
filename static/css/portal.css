@@ -16,6 +16,7 @@
   --shadow: 0 10px 36px rgba(16, 24, 40, 0.08);
   --accent: #2563eb;
   --accent-hover: #1d4ed8;
+  --hover-duration: 0.3s;
   --radius: 14px;
   font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
 }
@@ -36,6 +37,7 @@
   --shadow: 0 12px 40px rgba(0, 0, 0, 0.42);
   --accent: #6b9af2;
   --accent-hover: #5a88e8;
+  --hover-duration: 0.3s;
 }
 
 * {
@@ -1104,10 +1106,10 @@ li.student-row .student-row-meta {
   font-weight: 700;
   line-height: 1;
   transition:
-    background 0.15s ease,
-    border-color 0.15s ease,
-    color 0.15s ease,
-    opacity 0.15s ease;
+    background var(--hover-duration) ease,
+    border-color var(--hover-duration) ease,
+    color var(--hover-duration) ease,
+    opacity var(--hover-duration) ease;
 }
 
 .panel-admin-tests .btn-timing-confirm.is-idle {
@@ -1249,8 +1251,8 @@ li.student-row .student-row-meta {
   appearance: none;
   -webkit-appearance: none;
   transition:
-    background 0.15s ease,
-    border-color 0.15s ease;
+    background var(--hover-duration) ease,
+    border-color var(--hover-duration) ease;
 }
 
 .panel-notify .notify-summary:hover {
@@ -1300,7 +1302,7 @@ li.student-row .student-row-meta {
   border-radius: 8px;
   color: var(--muted);
   background: transparent;
-  transition: transform 0.8s ease, color 0.15s ease;
+  transition: transform 0.8s ease, color var(--hover-duration) ease;
 }
 
 .panel-notify .notify-summary-count + .notify-chevron {
@@ -1310,7 +1312,7 @@ li.student-row .student-row-meta {
 .panel-notify .notify-summary:hover .notify-chevron,
 .panel-notify .notify-disclosure.is-open .notify-chevron {
   color: var(--accent);
-  background: color-mix(in srgb, var(--accent) 10%, var(--card));
+  background: transparent;
 }
 
 .panel-notify .notify-disclosure.is-open .notify-chevron {
@@ -1535,7 +1537,7 @@ li.student-row .student-row-meta {
   border-radius: 8px;
   margin: 0 -8px;
   padding: 10px 8px;
-  transition: background 0.15s ease;
+  transition: background var(--hover-duration) ease, color var(--hover-duration) ease;
 }
 
 .list-plain li.row-link:hover {
@@ -1706,8 +1708,8 @@ li.student-row .student-row-meta {
     opacity 0.22s ease,
     visibility 0.22s ease,
     transform 0.22s ease,
-    background 0.15s ease,
-    color 0.15s ease;
+    background var(--hover-duration) ease,
+    color var(--hover-duration) ease;
   pointer-events: none;
 }
 
