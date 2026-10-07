@@ -1998,34 +1998,35 @@ async function renderAdminHome(main, session) {
 
 async function renderAdminClassSubjects(main) {
   const cls = portalState.className;
-  let adminTestsPanel = "";
+  const data = await api(`/api/portal/class/${encPath(cls)}/subjects`);
+  let classHub = "";
   if (isAdminRole()) {
     try {
       const timingData = await api(`/api/portal/class/${encPath(cls)}/exam-timing`);
       const bundleData = await api(`/api/portal/class/${encPath(cls)}/exam-bundle`);
-      adminTestsPanel = renderAdminTestsPanel(cls, timingData.schedule, bundleData);
+      classHub = renderAdminClassHubPanel(cls, timingData.schedule, bundleData, data.subjects);
     } catch (err) {
-      console.warn("portal: admin tests panel", err);
+      console.warn("portal: class hub panel", err);
     }
   }
-  const data = await api(`/api/portal/class/${encPath(cls)}/subjects`);
-  const rows = data.subjects
-    .map(
-      (s) => `<li class="row-link" role="button" tabindex="0" data-subject-code="${escapeHtml(s.code)}">
+  if (!classHub) {
+    const rows = data.subjects
+      .map(
+        (s) => `<li class="row-link" role="button" tabindex="0" data-subject-code="${escapeHtml(s.code)}">
       <span class="row-link-main">${escapeHtml(s.title)}</span>
       <span class="muted">${s.test_count} тест.</span>
     </li>`
-    )
-    .join("");
+      )
+      .join("");
+    classHub = `<section class="panel">
+      <h3 class="class-detail-title">Класс ${escapeHtml(cls)}</h3>
+      <ul class="list-plain">${rows}</ul>
+    </section>`;
+  }
 
   main.innerHTML = `
     <button type="button" class="btn-ghost btn-back" id="btn-back-classes">← К классам</button>
-    ${adminTestsPanel}
-    <div class="panel">
-      <h3 class="class-detail-title">Класс ${escapeHtml(cls)}</h3>
-      <p class="lead">Предметы — откройте тест для проверки вопросов</p>
-      <ul class="list-plain">${rows}</ul>
-    </div>
+    ${classHub}
   `;
   if (isAdminRole()) {
     bindAdminTestsPanel(main, cls);
@@ -2176,22 +2177,30 @@ function renderTeacherExamLivePreviewHtml(examMeta, questions) {
   });
 }
 
-function renderAdminTestsPanel(className, schedule, bundleData) {
+function renderAdminClassHubPanel(className, schedule, bundleData, subjects) {
   const sch = schedule || bundleData?.schedule || { total_minutes: 45, test_count: 3, minutes_per_test: 15 };
   const perTest =
     sch.minutes_per_test ?? Math.max(5, Math.floor((sch.total_minutes || 45) / (sch.test_count || 3)));
   const count = sch.test_count ?? (bundleData?.exams?.length || 3);
   const exams = bundleData?.exams || [];
   const published = Boolean(bundleData?.bundle_published);
-  const list = exams
+  const examList = exams
     .map(
       (ex, i) =>
         `<li><span class="row-link-main">${i + 1}. ${escapeHtml(ex.subject_title || "")}</span> <span class="muted">${escapeHtml(ex.title)}</span></li>`
     )
     .join("");
-  return `<section class="panel panel-admin-tests" id="admin-tests-panel">
-    <h3>Тесты</h3>
-    <p class="lead muted">Класс ${escapeHtml(className)} · сдаются подряд: математика → русский → английский.</p>
+  const subjectRows = (subjects || [])
+    .map(
+      (s) => `<li class="row-link" role="button" tabindex="0" data-subject-code="${escapeHtml(s.code)}">
+      <span class="row-link-main">${escapeHtml(s.title)}</span>
+      <span class="muted">${s.test_count} тест.</span>
+    </li>`
+    )
+    .join("");
+  return `<section class="panel panel-admin-class-hub panel-admin-tests" id="admin-tests-panel">
+    <h3 class="class-detail-title">Класс ${escapeHtml(className)}</h3>
+    <p class="lead muted">Тесты сдаются подряд: математика → русский → английский.</p>
     <div class="admin-tests-timing-block">
       <p class="muted">Общее время на все тесты (делится поровну): <strong>${count}</strong> тест(а) · ≈ <strong id="admin-timing-per-test">${perTest}</strong> мин на каждый.</p>
       <label class="admin-timing-total">
@@ -2203,12 +2212,16 @@ function renderAdminTestsPanel(className, schedule, bundleData) {
       <p class="muted" id="admin-timing-preview" data-test-count="${count}"></p>
       <p class="muted admin-timing-msg" id="admin-timing-msg" hidden></p>
     </div>
-    <ol class="list-plain admin-bundle-order">${list}</ol>
+    <ol class="list-plain admin-bundle-order">${examList}</ol>
     <p class="muted admin-tests-status">Статус: <strong>${published ? "опубликованы для учеников" : "ещё не опубликованы"}</strong></p>
     <div class="admin-tests-publish-row">
       <button type="button" class="btn-primary" id="btn-publish-exam-bundle"${published ? " hidden" : ""}>Опубликовать для учеников</button>
     </div>
     <p class="muted admin-bundle-msg" id="admin-bundle-msg" hidden></p>
+    <div class="admin-class-hub-divider" role="separator"></div>
+    <h4 class="admin-class-hub-subhead">Проверка вопросов по предметам</h4>
+    <p class="muted admin-class-hub-hint">Откройте предмет, чтобы исправить текст теста.</p>
+    <ul class="list-plain admin-class-subjects">${subjectRows}</ul>
   </section>`;
 }
 
