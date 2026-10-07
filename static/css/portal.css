@@ -1110,23 +1110,39 @@ li.student-row .student-row-meta {
   height: 2.1rem;
   padding: 0;
   margin-left: 2px;
-  border: 1px solid color-mix(in srgb, var(--accent) 55%, var(--border));
   border-radius: 8px;
-  background: color-mix(in srgb, var(--accent) 18%, var(--card));
-  color: var(--accent);
   font-size: 1.15rem;
   font-weight: 700;
   line-height: 1;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease,
+    opacity 0.15s ease;
+}
+
+.panel-admin-tests .btn-timing-confirm.is-idle {
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--muted);
+  opacity: 0.45;
+  cursor: default;
+}
+
+.panel-admin-tests .btn-timing-confirm.is-pending {
+  border: 1px solid color-mix(in srgb, var(--accent) 55%, var(--border));
+  background: color-mix(in srgb, var(--accent) 22%, var(--card));
+  color: var(--accent);
+  opacity: 1;
   cursor: pointer;
 }
 
-.panel-admin-tests .btn-timing-confirm:hover {
-  background: color-mix(in srgb, var(--accent) 28%, var(--card));
+.panel-admin-tests .btn-timing-confirm.is-pending:hover {
+  background: color-mix(in srgb, var(--accent) 32%, var(--card));
 }
 
 .panel-admin-tests .btn-timing-confirm:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
+  cursor: default;
 }
 
 .admin-timing-subjects {

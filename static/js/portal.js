@@ -2200,7 +2200,7 @@ function renderAdminTestsPanel(className, schedule, bundleData) {
         <span>Общее время</span>
         <input type="number" id="admin-timing-total" class="admin-timing-input" min="15" max="300" step="1" inputmode="numeric" value="${sch.total_minutes ?? 45}" />
         <span class="muted">мин</span>
-        <button type="button" class="btn-timing-confirm" id="btn-save-exam-timing" hidden title="Сохранить время" aria-label="Сохранить время">✓</button>
+        <button type="button" class="btn-timing-confirm is-idle" id="btn-save-exam-timing" disabled title="Сохранить время" aria-label="Сохранить время">✓</button>
       </label>
       <p class="muted" id="admin-timing-preview" data-test-count="${count}"></p>
       <p class="muted admin-timing-msg" id="admin-timing-msg" hidden></p>
@@ -2230,7 +2230,10 @@ function bindAdminTestsPanel(main, className) {
   const syncSaveTimingButton = () => {
     const current = Number(totalInput?.value);
     const dirty = Number.isFinite(current) && current !== savedTotalMinutes;
-    if (saveBtn) saveBtn.hidden = !dirty;
+    if (!saveBtn) return;
+    saveBtn.classList.toggle("is-pending", dirty);
+    saveBtn.classList.toggle("is-idle", !dirty);
+    saveBtn.disabled = !dirty;
   };
 
   const refreshPreview = () => {
@@ -2252,6 +2255,11 @@ function bindAdminTestsPanel(main, className) {
         body: JSON.stringify({ total_minutes: total }),
       });
       savedTotalMinutes = total;
+      if (saveBtn) {
+        saveBtn.classList.remove("is-pending");
+        saveBtn.classList.add("is-idle");
+        saveBtn.disabled = true;
+      }
       syncSaveTimingButton();
       if (timingMsg) {
         timingMsg.hidden = false;
