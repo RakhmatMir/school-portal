@@ -685,10 +685,6 @@ body.exam-guard-open #exam-guard-modal .exam-guard-dialog {
   font-size: 0.88rem;
 }
 
-.panel-collapse .collapse-trigger {
-  perspective: 480px;
-}
-
 .panel-collapse .collapse-chevron {
   flex-shrink: 0;
   color: var(--muted);
