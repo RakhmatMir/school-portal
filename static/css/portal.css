@@ -1318,13 +1318,15 @@ li.student-row .student-row-meta {
   border-radius: 8px;
   color: var(--muted);
   background: transparent;
-  transition: color var(--hover-duration) ease;
+  transform: rotate(0deg);
+  transform-origin: center center;
+  transition:
+    transform 0.8s ease,
+    color var(--hover-duration) ease;
 }
 
 .panel-notify .notify-chevron svg {
   display: block;
-  transform-origin: center center;
-  transition: transform 0.8s ease;
 }
 
 .panel-notify .notify-summary-count + .notify-chevron {
