@@ -1,4 +1,4 @@
-import { dataApi, demoAuthApi } from "./portal-data.js?v=86";
+import { dataApi, demoAuthApi } from "./portal-data.js?v=87";
 
 const $ = (id) => document.getElementById(id);
 
@@ -110,6 +110,26 @@ function loadAllExamSessions() {
 
 function saveAllExamSessions(map) {
   localStorage.setItem(EXAM_SESSION_KEY, JSON.stringify(map));
+}
+
+function clearLocalExamArtifactsForIds(examIds) {
+  const ids = [...new Set((examIds || []).map((id) => Number(id)).filter(Number.isFinite))];
+  if (!ids.length) return;
+  const all = loadAllExamSessions();
+  for (const id of ids) {
+    delete all[String(id)];
+    delete portalState.examAnswers[id];
+    delete portalState.examRunStep[id];
+    delete portalState.examQuestionTimes[id];
+    if (portalState.examExitIntents) delete portalState.examExitIntents[id];
+    try {
+      sessionStorage.removeItem(`portal_exam_exit_${id}`);
+      sessionStorage.removeItem(`portal_exam_deadline_${id}`);
+    } catch {
+      /* ignore */
+    }
+  }
+  saveAllExamSessions(all);
 }
 
 function getExamSession(examId) {
@@ -2289,7 +2309,7 @@ function renderAdminClassHubPanel(className, schedule, bundleData, subjects) {
     </div>
     <p class="muted admin-bundle-msg" id="admin-bundle-msg" hidden></p>
     <div class="admin-demo-reset">
-      <p class="muted">Демо: сбросить сдачу ученика в этом браузере, чтобы он прошёл экзамен заново. Результаты сдач хранятся локально и видны админу в карточке теста.</p>
+      <p class="muted">Демо: сброс только в <strong>этом браузере</strong> (общий localStorage). Если ученик сдавал с другого устройства — пусть нажмёт «Пройти экзамен заново» в своём кабинете.</p>
       <div class="field-inline">
         <label class="field-inline">Логин
           <input type="text" id="admin-reset-student-login" value="6b01" autocomplete="off" />
@@ -2406,9 +2426,14 @@ function bindAdminTestsPanel(main, className) {
         method: "POST",
         body: JSON.stringify({ login }),
       });
+      clearLocalExamArtifactsForIds(data.exam_ids);
       if (resetMsg) {
         resetMsg.hidden = false;
-        resetMsg.textContent = `Прогресс сброшен: ${data.full_name || login} (${data.cleared ?? 0} из ${data.exam_count ?? 0} тестов). Ученик может сдать экзамен заново в этом браузере.`;
+        const n = data.cleared ?? 0;
+        resetMsg.textContent =
+          n > 0
+            ? `Сброшено ${n} сдач для ${data.full_name || login} в этом браузере. Обновите кабинет ученика (F5).`
+            : `В этом браузере сдач для ${data.full_name || login} не найдено. Ученик должен нажать «Пройти экзамен заново» в своём кабинете на том устройстве, где сдавал.`;
       }
     } catch {
       if (resetMsg) {
@@ -2444,6 +2469,8 @@ function renderStudentExamBundlePanel(bundle) {
       <h3>Экзамен сдан</h3>
       <p class="muted">Вы прошли все ${bundle.test_count} теста. Результаты появятся, когда сдадут все в классе.</p>
       <ol class="list-plain bundle-steps">${steps}</ol>
+      <button type="button" class="btn-secondary" id="btn-reset-exam-bundle-demo">Пройти экзамен заново (демо)</button>
+      <p class="muted student-reset-hint">Сбрасывает ваши ответы только в этом браузере и позволяет сдать тесты снова.</p>
     </section>`;
   }
   const cta = bundle.next_exam_id ? "Продолжить экзамен" : "Начать экзамен";
@@ -2456,6 +2483,37 @@ function renderStudentExamBundlePanel(bundle) {
 }
 
 function bindStudentExamBundlePanel(main, bundle) {
+  const redoBtn = main.querySelector("#btn-reset-exam-bundle-demo");
+  redoBtn?.addEventListener("click", async () => {
+    if (blockActionIfExamActive()) return;
+    const ok = await showStudentConfirmModal({
+      title: "Пройти экзамен заново?",
+      description:
+        "Ваши ответы по этому экзамену в этом браузере будут удалены. Администратор увидит только новую сдачу после повторного прохождения. Продолжить?",
+      confirmLabel: "Сбросить и начать",
+      cancelLabel: "Отмена",
+    });
+    if (!ok) return;
+    redoBtn.disabled = true;
+    try {
+      const data = await api("/api/portal/my/reset-exam-bundle", { method: "POST", body: "{}" });
+      clearLocalExamArtifactsForIds(data.exam_ids);
+      portalState.studentBundleMode = false;
+      portalState.adminView = "home";
+      portalState.examId = null;
+      portalState.highlightResultExamId = null;
+      await renderStudentFlow();
+    } catch {
+      redoBtn.disabled = false;
+      await showStudentConfirmModal({
+        title: "Не удалось сбросить",
+        description: "Обновите страницу (Ctrl+F5) и попробуйте снова.",
+        confirmLabel: "Понятно",
+        cancelLabel: "Закрыть",
+      });
+    }
+  });
+
   const btn = main.querySelector("#btn-start-exam-bundle");
   if (!btn || !bundle?.next_exam_id) return;
   btn.addEventListener("click", async () => {
