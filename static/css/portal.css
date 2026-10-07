@@ -1097,8 +1097,23 @@ li.student-row .student-row-meta {
   margin-top: 12px;
 }
 
-.panel-admin-bundle .admin-bundle-order {
+.panel-admin-tests .admin-tests-timing-block {
+  padding: 12px 0 16px;
+  margin-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+}
+
+.panel-admin-tests .admin-bundle-order {
   margin: 12px 0;
+}
+
+.panel-admin-tests .admin-tests-publish-row {
+  margin-top: 16px;
+}
+
+.panel-admin-tests .admin-tests-publish-row .btn-primary {
+  width: 100%;
+  max-width: 22rem;
 }
 
 .bundle-steps {
