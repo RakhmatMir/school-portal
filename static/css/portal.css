@@ -21,19 +21,21 @@
 }
 
 [data-theme="dark"] {
-  --bg: #141820;
-  --card: #1c2230;
-  --text: #e8ecf2;
-  --muted: #9aa3b2;
-  --border: #2f3848;
-  --input-bg: #151a24;
-  --stat-bg: #232b3a;
-  --ghost-hover: #252d3d;
-  --badge-bg: #2a3550;
-  --badge-text: #93b4f5;
-  --shadow: 0 8px 32px rgba(0, 0, 0, 0.35);
-  --accent: #5b8def;
-  --accent-hover: #4a7ad8;
+  --bg: #0f131a;
+  --card: #1a2130;
+  --text: #edf1f7;
+  --muted: #a3adbc;
+  --border: #3a4558;
+  --input-bg: #121820;
+  --stat-bg: #222b3a;
+  --ghost-hover: #2b3445;
+  --row-hover: #333d50;
+  --table-row-hover: color-mix(in srgb, var(--accent) 14%, var(--ghost-hover));
+  --badge-bg: #2a3650;
+  --badge-text: #a8c4f5;
+  --shadow: 0 12px 40px rgba(0, 0, 0, 0.42);
+  --accent: #6b9af2;
+  --accent-hover: #5a88e8;
 }
 
 * {
@@ -1295,9 +1297,10 @@ li.student-row .student-row-meta {
   margin-left: 0;
 }
 
-.panel-notify .notify-summary:hover .notify-chevron {
+.panel-notify .notify-summary:hover .notify-chevron,
+.panel-notify .notify-disclosure.is-open .notify-chevron {
   color: var(--accent);
-  background: var(--ghost-hover);
+  background: color-mix(in srgb, var(--accent) 10%, var(--card));
 }
 
 .panel-notify .notify-disclosure.is-open .notify-chevron {
