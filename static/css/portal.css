@@ -1,16 +1,19 @@
 :root,
 [data-theme="light"] {
-  --bg: #eef1f6;
-  --card: #ffffff;
-  --text: #1a2332;
-  --muted: #5c6778;
-  --border: #d4dae4;
-  --input-bg: #fafbfc;
-  --stat-bg: #f6f8fb;
-  --ghost-hover: #f3f5f8;
-  --badge-bg: #e8eef9;
-  --badge-text: #1e40af;
-  --shadow: 0 8px 32px rgba(26, 35, 50, 0.08);
+  --bg: #e4e9f0;
+  --card: #f6f8fb;
+  --text: #101828;
+  --muted: #475467;
+  --border: #b8c4d4;
+  --input-bg: #ffffff;
+  --stat-bg: #e9eef4;
+  /* ~20% darker than former #f3f5f8 — clearer hover on cards */
+  --ghost-hover: #dce3ed;
+  --row-hover: #d2dae6;
+  --table-row-hover: color-mix(in srgb, var(--accent) 10%, var(--ghost-hover));
+  --badge-bg: #e3ebf8;
+  --badge-text: #1e3a8a;
+  --shadow: 0 10px 36px rgba(16, 24, 40, 0.08);
   --accent: #2563eb;
   --accent-hover: #1d4ed8;
   --radius: 14px;
