@@ -2081,6 +2081,44 @@ async function fetchExamPreview(examId) {
 
 const EXAM_EDITOR_LETTERS = ["A", "B", "C", "D", "E", "F"];
 
+function teacherExamQuestionsSnapshot(questions) {
+  const rows = (questions || []).map((q) => {
+    const options = (q.options || []).map((o) => String(o).trim()).filter(Boolean);
+    let correct_index = Number(q.correct_index);
+    if (!Number.isFinite(correct_index)) correct_index = 0;
+    if (options.length) correct_index = Math.min(correct_index, options.length - 1);
+    return {
+      text: String(q.text || "").trim(),
+      options,
+      correct_index,
+    };
+  });
+  return JSON.stringify(rows);
+}
+
+function teacherExamQuestionsEqual(a, b) {
+  return teacherExamQuestionsSnapshot(a) === teacherExamQuestionsSnapshot(b);
+}
+
+function teacherExamEditorActionFlags(currentQuestions, baselineQuestions, { published, needsSitePublish }) {
+  const hasChanges = !teacherExamQuestionsEqual(currentQuestions, baselineQuestions);
+  const showSaveDraft = hasChanges;
+  const showPublish = hasChanges || !published;
+  const showDownload = hasChanges || !published || needsSitePublish;
+  return { hasChanges, showSaveDraft, showPublish, showDownload };
+}
+
+function applyTeacherExamEditorActions(panel, flags) {
+  const saveBtn = panel.querySelector("#btn-save-exam-draft");
+  const pubBtn = panel.querySelector("#btn-publish-exam");
+  const patchBtn = panel.querySelector("#btn-download-exam-patch");
+  const actions = panel.querySelector(".teacher-exam-editor-actions");
+  if (saveBtn) saveBtn.hidden = !flags.showSaveDraft;
+  if (pubBtn) pubBtn.hidden = !flags.showPublish;
+  if (patchBtn) patchBtn.hidden = !flags.showDownload;
+  if (actions) actions.hidden = !flags.showSaveDraft && !flags.showPublish && !flags.showDownload;
+}
+
 function teacherExamPreviewPayload(examMeta, questions) {
   return {
     exam: {
@@ -2127,7 +2165,13 @@ function downloadPortalExamPatch(examMeta, questions) {
 
 function renderTeacherExamEditorPanel(questions, editorMeta, examMeta) {
   const published = editorMeta?.published !== false;
-  const needsSitePublish = Boolean(examMeta?.requires_teacher_publish && !examMeta?.published_to_students);
+  const needsSitePublish = Boolean(
+    examMeta?.requires_teacher_publish && examMeta?.published_to_students !== true
+  );
+  const initialFlags = teacherExamEditorActionFlags(questions, questions, {
+    published,
+    needsSitePublish,
+  });
   const badgeClass = published ? "tag tag-ok" : "tag tag-warn";
   let badgeText = published ? "Опубликован для учеников" : "Черновик — ученики не видят";
   if (needsSitePublish && published) {
@@ -2167,10 +2211,10 @@ function renderTeacherExamEditorPanel(questions, editorMeta, examMeta) {
     <div class="teacher-exam-editor-layout">
       <div class="teacher-exam-editor-main">
         <div class="teacher-q-edit-list">${cards}</div>
-        <div class="teacher-exam-editor-actions">
-          <button type="button" class="btn-secondary" id="btn-save-exam-draft">Сохранить черновик</button>
-          <button type="button" class="btn-primary" id="btn-publish-exam">Опубликовать для учеников</button>
-          <button type="button" class="btn-ghost" id="btn-download-exam-patch">Скачать JSON для сайта</button>
+        <div class="teacher-exam-editor-actions"${initialFlags.showSaveDraft || initialFlags.showPublish || initialFlags.showDownload ? "" : " hidden"}>
+          <button type="button" class="btn-secondary" id="btn-save-exam-draft"${initialFlags.showSaveDraft ? "" : " hidden"}>Сохранить черновик</button>
+          <button type="button" class="btn-primary" id="btn-publish-exam"${initialFlags.showPublish ? "" : " hidden"}>Опубликовать для учеников</button>
+          <button type="button" class="btn-ghost" id="btn-download-exam-patch"${initialFlags.showDownload ? "" : " hidden"}>Скачать JSON для сайта</button>
         </div>
       </div>
       <aside class="teacher-exam-live-preview" aria-label="Просмотр теста">
@@ -2217,7 +2261,7 @@ function setExamEditorMessage(root, text, isError = false) {
   el.classList.toggle("error", isError);
 }
 
-function bindTeacherExamEditor(main, examId, examMeta) {
+function bindTeacherExamEditor(main, examId, examMeta, initialQuestions, editorMeta) {
   const panel = main.querySelector("#teacher-exam-editor");
   if (!panel) return;
   const saveBtn = panel.querySelector("#btn-save-exam-draft");
@@ -2225,11 +2269,26 @@ function bindTeacherExamEditor(main, examId, examMeta) {
   const patchBtn = panel.querySelector("#btn-download-exam-patch");
   const previewRoot = panel.querySelector("#teacher-exam-live-preview");
   let previewTimer = null;
+  let baselineQuestions = JSON.parse(teacherExamQuestionsSnapshot(initialQuestions || []));
+  let publishedToStudents = editorMeta?.published !== false;
+  const needsSitePublish = Boolean(
+    examMeta?.requires_teacher_publish && examMeta?.published_to_students !== true
+  );
+
+  const editorUiState = () => ({ published: publishedToStudents, needsSitePublish });
+
+  const syncEditorActions = () => {
+    const current = collectTeacherExamQuestionsFromEditor(panel);
+    const flags = teacherExamEditorActionFlags(current, baselineQuestions, editorUiState());
+    applyTeacherExamEditorActions(panel, flags);
+    return flags;
+  };
 
   const refreshLivePreview = () => {
     if (!previewRoot) return;
     const questions = collectTeacherExamQuestionsFromEditor(panel);
     previewRoot.innerHTML = renderTeacherExamLivePreviewHtml(examMeta, questions);
+    syncEditorActions();
   };
 
   panel.querySelectorAll(".teacher-q-text, .teacher-q-opt-input").forEach((el) => {
@@ -2239,7 +2298,9 @@ function bindTeacherExamEditor(main, examId, examMeta) {
     });
   });
   panel.querySelectorAll('input[type="radio"]').forEach((el) => {
-    el.addEventListener("change", refreshLivePreview);
+    el.addEventListener("change", () => {
+      refreshLivePreview();
+    });
   });
 
   patchBtn?.addEventListener("click", () => {
@@ -2259,11 +2320,12 @@ function bindTeacherExamEditor(main, examId, examMeta) {
         method: "POST",
         body: JSON.stringify({ questions }),
       });
+      baselineQuestions = collectTeacherExamQuestionsFromEditor(panel);
       setExamEditorMessage(
         panel,
         "Черновик сохранён. Нажмите «Опубликовать для учеников», чтобы открыть сдачу с этими вопросами."
       );
-      await renderAdminFlow();
+      syncEditorActions();
     } catch (e) {
       setExamEditorMessage(panel, "Не удалось сохранить черновик.", true);
     } finally {
@@ -2433,7 +2495,13 @@ async function renderAdminExamDetail(main) {
   bindCollapsiblePanels(main);
   bindStudentTableExpand(main);
   bindExamSessionPanel(main, examId, data.students);
-  bindTeacherExamEditor(main, examId, { ...ex, id: examId });
+  bindTeacherExamEditor(
+    main,
+    examId,
+    { ...ex, id: examId },
+    data.questions,
+    data.exam_editor || { published: true }
+  );
   bindTeacherReportPanel(main, examId);
   $("btn-back-tests").addEventListener("click", () => {
     portalState.adminView = "subject";
