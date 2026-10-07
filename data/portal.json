@@ -1,11 +1,23 @@
 {
   "school_name": "Foundation School — демо",
   "classes": [
-    { "class_name": "6Б", "student_count": 19, "test_count": 2 }
+    {
+      "class_name": "6Б",
+      "student_count": 19,
+      "test_count": 2
+    }
   ],
   "subjects": [
-    { "code": "math", "title": "Математика", "test_count": 1 },
-    { "code": "english", "title": "Английский язык", "test_count": 1 }
+    {
+      "code": "math",
+      "title": "Математика",
+      "test_count": 1
+    },
+    {
+      "code": "english",
+      "title": "Английский язык",
+      "test_count": 1
+    }
   ],
   "exams": [
     {
@@ -21,15 +33,34 @@
       "catalog_key": "todo",
       "question_count": 3,
       "questions": [
-        { "text": "Сколько будет 12 + 8?", "options": ["18", "20", "21", "19"], "correct_index": 1 },
+        {
+          "text": "Сколько будет 12 + 8?",
+          "options": [
+            "18",
+            "20",
+            "21",
+            "19"
+          ],
+          "correct_index": 1
+        },
         {
           "text": "Choose the correct form: She ___ to school every day.",
-          "options": ["go", "goes", "going", "gone"],
+          "options": [
+            "go",
+            "goes",
+            "going",
+            "gone"
+          ],
           "correct_index": 1
         },
         {
           "text": "Единица силы в SI — это…",
-          "options": ["Джоуль", "Ньютон", "Паскаль", "Ватт"],
+          "options": [
+            "Джоуль",
+            "Ньютон",
+            "Паскаль",
+            "Ватт"
+          ],
           "correct_index": 1
         }
       ]
@@ -47,15 +78,34 @@
       "catalog_key": "todo",
       "question_count": 3,
       "questions": [
-        { "text": "Сколько будет 12 + 8?", "options": ["18", "20", "21", "19"], "correct_index": 1 },
+        {
+          "text": "Сколько будет 12 + 8?",
+          "options": [
+            "18",
+            "20",
+            "21",
+            "19"
+          ],
+          "correct_index": 1
+        },
         {
           "text": "Choose the correct form: She ___ to school every day.",
-          "options": ["go", "goes", "going", "gone"],
+          "options": [
+            "go",
+            "goes",
+            "going",
+            "gone"
+          ],
           "correct_index": 1
         },
         {
           "text": "Единица силы в SI — это…",
-          "options": ["Джоуль", "Ньютон", "Паскаль", "Ватт"],
+          "options": [
+            "Джоуль",
+            "Ньютон",
+            "Паскаль",
+            "Ватт"
+          ],
           "correct_index": 1
         }
       ]
@@ -63,25 +113,120 @@
   ],
   "rosters": {
     "6Б": [
-      { "id": 401, "full_name": "Аскаралиева Фарахноз", "status": "not_started", "score_percent": null },
-      { "id": 402, "full_name": "Рафиков Ризкхожа", "status": "not_started", "score_percent": null },
-      { "id": 403, "full_name": "Дилмуродова Имронбек", "status": "not_started", "score_percent": null },
-      { "id": 404, "full_name": "Мамирова Жахоноробегим", "status": "not_started", "score_percent": null },
-      { "id": 405, "full_name": "Ганиев Аброрбек", "status": "not_started", "score_percent": null },
-      { "id": 406, "full_name": "Джалолов Мухаммад", "status": "not_started", "score_percent": null },
-      { "id": 407, "full_name": "Абдупаттаев Нурбек", "status": "not_started", "score_percent": null },
-      { "id": 408, "full_name": "Ахунжанова Асила", "status": "not_started", "score_percent": null },
-      { "id": 409, "full_name": "Абдуллаев Фирдавс", "status": "not_started", "score_percent": null },
-      { "id": 410, "full_name": "Холмирзаева Асрорахон", "status": "not_started", "score_percent": null },
-      { "id": 411, "full_name": "Зайтулаева София", "status": "not_started", "score_percent": null },
-      { "id": 412, "full_name": "Кинжалова Асаль", "status": "not_started", "score_percent": null },
-      { "id": 413, "full_name": "Мамаджанова Афруза", "status": "not_started", "score_percent": null },
-      { "id": 414, "full_name": "Дадабоев Мухаммадюсуф", "status": "not_started", "score_percent": null },
-      { "id": 415, "full_name": "Касимов Мухаммад Иброхим", "status": "not_started", "score_percent": null },
-      { "id": 416, "full_name": "Умаров Абубакир", "status": "not_started", "score_percent": null },
-      { "id": 417, "full_name": "Хайдаров Солих", "status": "not_started", "score_percent": null },
-      { "id": 418, "full_name": "Махмудов Амирхон", "status": "not_started", "score_percent": null },
-      { "id": 419, "full_name": "Холжораев Мухаммадсудайс", "status": "not_started", "score_percent": null }
+      {
+        "id": 401,
+        "full_name": "Аскаралиева Фарахноз",
+        "status": "not_started",
+        "score_percent": null
+      },
+      {
+        "id": 402,
+        "full_name": "Рафиков Ризкхожа",
+        "status": "not_started",
+        "score_percent": null
+      },
+      {
+        "id": 403,
+        "full_name": "Дилмуродова Имронбек",
+        "status": "not_started",
+        "score_percent": null
+      },
+      {
+        "id": 404,
+        "full_name": "Мамирова Жахоноробегим",
+        "status": "not_started",
+        "score_percent": null
+      },
+      {
+        "id": 405,
+        "full_name": "Ганиев Аброрбек",
+        "status": "not_started",
+        "score_percent": null
+      },
+      {
+        "id": 406,
+        "full_name": "Джалолов Мухаммад",
+        "status": "not_started",
+        "score_percent": null
+      },
+      {
+        "id": 407,
+        "full_name": "Абдупаттаев Нурбек",
+        "status": "not_started",
+        "score_percent": null
+      },
+      {
+        "id": 408,
+        "full_name": "Ахунжанова Асила",
+        "status": "not_started",
+        "score_percent": null
+      },
+      {
+        "id": 409,
+        "full_name": "Абдуллаев Фирдавс",
+        "status": "not_started",
+        "score_percent": null
+      },
+      {
+        "id": 410,
+        "full_name": "Холмирзаева Асрорахон",
+        "status": "not_started",
+        "score_percent": null
+      },
+      {
+        "id": 411,
+        "full_name": "Зайтулаева София",
+        "status": "not_started",
+        "score_percent": null
+      },
+      {
+        "id": 412,
+        "full_name": "Кинжалова Асаль",
+        "status": "not_started",
+        "score_percent": null
+      },
+      {
+        "id": 413,
+        "full_name": "Мамаджанова Афруза",
+        "status": "not_started",
+        "score_percent": null
+      },
+      {
+        "id": 414,
+        "full_name": "Дадабоев Мухаммадюсуф",
+        "status": "not_started",
+        "score_percent": null
+      },
+      {
+        "id": 415,
+        "full_name": "Касимов Мухаммад Иброхим",
+        "status": "not_started",
+        "score_percent": null
+      },
+      {
+        "id": 416,
+        "full_name": "Умаров Абубакир",
+        "status": "not_started",
+        "score_percent": null
+      },
+      {
+        "id": 417,
+        "full_name": "Хайдаров Солих",
+        "status": "not_started",
+        "score_percent": null
+      },
+      {
+        "id": 418,
+        "full_name": "Махмудов Амирхон",
+        "status": "not_started",
+        "score_percent": null
+      },
+      {
+        "id": 419,
+        "full_name": "Холжораев Мухаммадсудайс",
+        "status": "not_started",
+        "score_percent": null
+      }
     ]
   },
   "demo_users": [
@@ -101,25 +246,158 @@
       "role": "teacher",
       "class_name": null
     },
-    { "id": 401, "login": "6b01", "password": "6b2026", "full_name": "Аскаралиева Фарахноз", "role": "student", "class_name": "6Б" },
-    { "id": 402, "login": "6b02", "password": "6b2026", "full_name": "Рафиков Ризкхожа", "role": "student", "class_name": "6Б" },
-    { "id": 403, "login": "6b03", "password": "6b2026", "full_name": "Дилмуродова Имронбек", "role": "student", "class_name": "6Б" },
-    { "id": 404, "login": "6b04", "password": "6b2026", "full_name": "Мамирова Жахоноробегим", "role": "student", "class_name": "6Б" },
-    { "id": 405, "login": "6b05", "password": "6b2026", "full_name": "Ганиев Аброрбек", "role": "student", "class_name": "6Б" },
-    { "id": 406, "login": "6b06", "password": "6b2026", "full_name": "Джалолов Мухаммад", "role": "student", "class_name": "6Б" },
-    { "id": 407, "login": "6b07", "password": "6b2026", "full_name": "Абдупаттаев Нурбек", "role": "student", "class_name": "6Б" },
-    { "id": 408, "login": "6b08", "password": "6b2026", "full_name": "Ахунжанова Асила", "role": "student", "class_name": "6Б" },
-    { "id": 409, "login": "6b09", "password": "6b2026", "full_name": "Абдуллаев Фирдавс", "role": "student", "class_name": "6Б" },
-    { "id": 410, "login": "6b10", "password": "6b2026", "full_name": "Холмирзаева Асрорахон", "role": "student", "class_name": "6Б" },
-    { "id": 411, "login": "6b11", "password": "6b2026", "full_name": "Зайтулаева София", "role": "student", "class_name": "6Б" },
-    { "id": 412, "login": "6b12", "password": "6b2026", "full_name": "Кинжалова Асаль", "role": "student", "class_name": "6Б" },
-    { "id": 413, "login": "6b13", "password": "6b2026", "full_name": "Мамаджанова Афруза", "role": "student", "class_name": "6Б" },
-    { "id": 414, "login": "6b14", "password": "6b2026", "full_name": "Дадабоев Мухаммадюсуф", "role": "student", "class_name": "6Б" },
-    { "id": 415, "login": "6b15", "password": "6b2026", "full_name": "Касимов Мухаммад Иброхим", "role": "student", "class_name": "6Б" },
-    { "id": 416, "login": "6b16", "password": "6b2026", "full_name": "Умаров Абубакир", "role": "student", "class_name": "6Б" },
-    { "id": 417, "login": "6b17", "password": "6b2026", "full_name": "Хайдаров Солих", "role": "student", "class_name": "6Б" },
-    { "id": 418, "login": "6b18", "password": "6b2026", "full_name": "Махмудов Амирхон", "role": "student", "class_name": "6Б" },
-    { "id": 419, "login": "6b19", "password": "6b2026", "full_name": "Холжораев Мухаммадсудайс", "role": "student", "class_name": "6Б" }
+    {
+      "id": 401,
+      "login": "6b01",
+      "password": "6b01-401",
+      "full_name": "Аскаралиева Фарахноз",
+      "role": "student",
+      "class_name": "6Б"
+    },
+    {
+      "id": 402,
+      "login": "6b02",
+      "password": "6b02-402",
+      "full_name": "Рафиков Ризкхожа",
+      "role": "student",
+      "class_name": "6Б"
+    },
+    {
+      "id": 403,
+      "login": "6b03",
+      "password": "6b03-403",
+      "full_name": "Дилмуродова Имронбек",
+      "role": "student",
+      "class_name": "6Б"
+    },
+    {
+      "id": 404,
+      "login": "6b04",
+      "password": "6b04-404",
+      "full_name": "Мамирова Жахоноробегим",
+      "role": "student",
+      "class_name": "6Б"
+    },
+    {
+      "id": 405,
+      "login": "6b05",
+      "password": "6b05-405",
+      "full_name": "Ганиев Аброрбек",
+      "role": "student",
+      "class_name": "6Б"
+    },
+    {
+      "id": 406,
+      "login": "6b06",
+      "password": "6b06-406",
+      "full_name": "Джалолов Мухаммад",
+      "role": "student",
+      "class_name": "6Б"
+    },
+    {
+      "id": 407,
+      "login": "6b07",
+      "password": "6b07-407",
+      "full_name": "Абдупаттаев Нурбек",
+      "role": "student",
+      "class_name": "6Б"
+    },
+    {
+      "id": 408,
+      "login": "6b08",
+      "password": "6b08-408",
+      "full_name": "Ахунжанова Асила",
+      "role": "student",
+      "class_name": "6Б"
+    },
+    {
+      "id": 409,
+      "login": "6b09",
+      "password": "6b09-409",
+      "full_name": "Абдуллаев Фирдавс",
+      "role": "student",
+      "class_name": "6Б"
+    },
+    {
+      "id": 410,
+      "login": "6b10",
+      "password": "6b10-410",
+      "full_name": "Холмирзаева Асрорахон",
+      "role": "student",
+      "class_name": "6Б"
+    },
+    {
+      "id": 411,
+      "login": "6b11",
+      "password": "6b11-411",
+      "full_name": "Зайтулаева София",
+      "role": "student",
+      "class_name": "6Б"
+    },
+    {
+      "id": 412,
+      "login": "6b12",
+      "password": "6b12-412",
+      "full_name": "Кинжалова Асаль",
+      "role": "student",
+      "class_name": "6Б"
+    },
+    {
+      "id": 413,
+      "login": "6b13",
+      "password": "6b13-413",
+      "full_name": "Мамаджанова Афруза",
+      "role": "student",
+      "class_name": "6Б"
+    },
+    {
+      "id": 414,
+      "login": "6b14",
+      "password": "6b14-414",
+      "full_name": "Дадабоев Мухаммадюсуф",
+      "role": "student",
+      "class_name": "6Б"
+    },
+    {
+      "id": 415,
+      "login": "6b15",
+      "password": "6b15-415",
+      "full_name": "Касимов Мухаммад Иброхим",
+      "role": "student",
+      "class_name": "6Б"
+    },
+    {
+      "id": 416,
+      "login": "6b16",
+      "password": "6b16-416",
+      "full_name": "Умаров Абубакир",
+      "role": "student",
+      "class_name": "6Б"
+    },
+    {
+      "id": 417,
+      "login": "6b17",
+      "password": "6b17-417",
+      "full_name": "Хайдаров Солих",
+      "role": "student",
+      "class_name": "6Б"
+    },
+    {
+      "id": 418,
+      "login": "6b18",
+      "password": "6b18-418",
+      "full_name": "Махмудов Амирхон",
+      "role": "student",
+      "class_name": "6Б"
+    },
+    {
+      "id": 419,
+      "login": "6b19",
+      "password": "6b19-419",
+      "full_name": "Холжораев Мухаммадсудайс",
+      "role": "student",
+      "class_name": "6Б"
+    }
   ],
   "demo_exam_answers": {},
   "demo_question_times": {},
