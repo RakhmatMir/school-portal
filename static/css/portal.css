@@ -322,6 +322,7 @@ body.exam-guard-open #exam-guard-modal .exam-guard-dialog {
 
 .student-test-opt:hover {
   border-color: color-mix(in srgb, var(--accent) 45%, var(--border));
+  background: var(--ghost-hover);
 }
 
 .student-test-opt.is-selected {
@@ -551,11 +552,11 @@ body.exam-guard-open #exam-guard-modal .exam-guard-dialog {
 }
 
 .panel-staff-tests .staff-tests-pool--active .staff-tests-pool-list li.row-link:hover {
-  background: color-mix(in srgb, var(--accent) 8%, transparent);
+  background: color-mix(in srgb, var(--accent) 12%, var(--ghost-hover));
 }
 
 .panel-staff-tests .staff-tests-pool--done .staff-tests-pool-list li.row-link:hover {
-  background: color-mix(in srgb, var(--staff-pool-done) 8%, transparent);
+  background: color-mix(in srgb, var(--staff-pool-done) 14%, var(--ghost-hover));
 }
 
 .data-table tbody tr.row-link {
@@ -563,7 +564,7 @@ body.exam-guard-open #exam-guard-modal .exam-guard-dialog {
 }
 
 .data-table tbody tr.row-link:hover td {
-  background: color-mix(in srgb, var(--accent) 8%, transparent);
+  background: var(--table-row-hover, color-mix(in srgb, var(--accent) 8%, transparent));
 }
 
 .btn-theme {
@@ -795,7 +796,7 @@ li.student-row .student-row-meta {
 }
 
 .data-table tbody tr:hover td {
-  background: color-mix(in srgb, var(--accent) 6%, transparent);
+  background: var(--table-row-hover, color-mix(in srgb, var(--accent) 6%, transparent));
 }
 
 .data-table td.num {
@@ -1210,30 +1211,53 @@ li.student-row .student-row-meta {
 }
 
 .panel-notify .notify-disclosure {
+  display: block;
+  width: 100%;
   margin: 0;
 }
 
 .panel-notify .notify-summary {
-  display: block;
+  display: flex;
+  align-items: stretch;
   width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
   margin: 0;
-  padding: 0;
-  border: none;
-  background: transparent;
-  color: inherit;
+  padding: 10px 12px;
+  border: 1px solid color-mix(in srgb, var(--accent) 20%, var(--border));
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--stat-bg) 65%, var(--card));
+  color: var(--text);
   font: inherit;
   text-align: left;
   cursor: pointer;
   user-select: none;
+  appearance: none;
+  -webkit-appearance: none;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.panel-notify .notify-summary:hover {
+  background: var(--ghost-hover);
+  border-color: color-mix(in srgb, var(--accent) 32%, var(--border));
+}
+
+.panel-notify .notify-disclosure.is-open .notify-summary {
+  background: var(--ghost-hover);
+  border-color: color-mix(in srgb, var(--accent) 38%, var(--border));
 }
 
 .panel-notify .notify-summary-row {
   display: flex;
+  flex: 1;
   flex-wrap: nowrap;
   align-items: center;
   gap: 10px;
-  min-height: 2.25rem;
+  min-height: 1.5rem;
   width: 100%;
+  min-width: 0;
 }
 
 .panel-notify .notify-summary-title {
@@ -1474,7 +1498,7 @@ li.student-row .student-row-meta {
 }
 
 .list-plain li.row-link:hover {
-  background: var(--ghost-hover);
+  background: var(--row-hover, var(--ghost-hover));
 }
 
 .list-plain li.row-link::after {
