@@ -2986,13 +2986,8 @@ async function renderDashboard(session) {
   const role = session.user?.role || "";
   const roleLabel = ROLE_LABEL[role] || role;
   const userLineEl = $("app-user-line");
-  if (role === "admin") {
-    userLineEl.textContent = "";
-    userLineEl.hidden = true;
-  } else {
-    userLineEl.hidden = false;
-    userLineEl.textContent = `${session.user.full_name} · ${roleLabel}`;
-  }
+  userLineEl.hidden = false;
+  userLineEl.textContent = `${session.user.full_name} · ${roleLabel}`;
   showApp();
 
   if (role === "admin") {
