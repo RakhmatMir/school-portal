@@ -1943,17 +1943,15 @@ async function loadStaffTestsList() {
 async function renderAdminHome(main, session) {
   const classes = await api("/api/portal/classes");
   const staffTests = isStaffRole() ? await loadStaffTestsList() : [];
-  let adminTimingPanel = "";
-  let adminBundlePanel = "";
+  let adminTestsPanel = "";
   if (isAdminRole() && classes.length) {
     const primaryClass = classes[0].class_name;
     try {
       const timingData = await api(`/api/portal/class/${encPath(primaryClass)}/exam-timing`);
-      adminTimingPanel = renderAdminExamTimingPanel(primaryClass, timingData.schedule);
       const bundleData = await api(`/api/portal/class/${encPath(primaryClass)}/exam-bundle`);
-      adminBundlePanel = renderAdminExamBundlePanel(primaryClass, bundleData);
+      adminTestsPanel = renderAdminTestsPanel(primaryClass, timingData.schedule, bundleData);
     } catch (err) {
-      console.warn("portal: exam timing", err);
+      console.warn("portal: admin tests panel", err);
     }
   }
   const rows = classes.length
@@ -1974,7 +1972,7 @@ async function renderAdminHome(main, session) {
   const role = ROLE_LABEL.admin;
   const testsPanel = isStaffRole()
     ? `<div class="panel panel-staff-tests">
-      <h3>Тесты</h3>
+      <h3>Контрольные</h3>
       <p class="lead muted staff-tests-hint">Нажмите тест — откроется проверка и настройка.</p>
       <div class="staff-tests-pools">
         ${renderStaffTestsPool("active", "К сдаче", activeTests)}
@@ -1989,8 +1987,7 @@ async function renderAdminHome(main, session) {
       <p class="lead">Классы — по предметам; ниже список всех тестов.</p>
     </div>
     ${renderNotifyRecipientsPanel()}
-    ${adminTimingPanel}
-    ${adminBundlePanel}
+    ${adminTestsPanel}
     <div class="panel">
       <h3>Классы</h3>
       <ul class="list-plain">${rows}</ul>
@@ -2000,8 +1997,7 @@ async function renderAdminHome(main, session) {
   bindNotifyRecipients(main);
   if (isAdminRole() && classes.length) {
     const primaryClass = classes[0].class_name;
-    bindAdminExamTimingPanel(main, primaryClass);
-    bindAdminExamBundlePanel(main, primaryClass);
+    bindAdminTestsPanel(main, primaryClass);
   }
   bindStaffHomeTestsList(main, staffTestPools);
   bindRowNav(main, "[data-class-name]", (el) => {
@@ -2182,26 +2178,11 @@ function renderTeacherExamLivePreviewHtml(examMeta, questions) {
   });
 }
 
-function renderAdminExamTimingPanel(className, schedule) {
-  const sch = schedule || { total_minutes: 90, test_count: 3, minutes_per_test: 30 };
-  const perTest = sch.minutes_per_test ?? Math.max(5, Math.floor((sch.total_minutes || 90) / (sch.test_count || 3)));
-  const count = sch.test_count ?? 3;
-  return `<section class="panel panel-admin-timing" id="admin-exam-timing">
-    <h3>Время экзамена (класс ${escapeHtml(className)})</h3>
-    <p class="lead muted">Одно общее время на весь комплект тестов. Оно делится поровну: сейчас <strong>${count}</strong> тест(а) · ≈ <strong id="admin-timing-per-test">${perTest}</strong> мин на каждый.</p>
-    <label class="admin-timing-total">
-      <span>Общее время</span>
-      <input type="number" id="admin-timing-total" min="15" max="300" step="5" value="${sch.total_minutes ?? 90}" />
-      <span class="muted">мин</span>
-    </label>
-    <p class="muted" id="admin-timing-preview" data-test-count="${count}"></p>
-    <button type="button" class="btn-secondary" id="btn-save-exam-timing">Сохранить время</button>
-    <p class="muted admin-timing-msg" id="admin-timing-msg" hidden></p>
-  </section>`;
-}
-
-function renderAdminExamBundlePanel(className, bundleData) {
-  const sch = bundleData?.schedule || {};
+function renderAdminTestsPanel(className, schedule, bundleData) {
+  const sch = schedule || bundleData?.schedule || { total_minutes: 90, test_count: 3, minutes_per_test: 30 };
+  const perTest =
+    sch.minutes_per_test ?? Math.max(5, Math.floor((sch.total_minutes || 90) / (sch.test_count || 3)));
+  const count = sch.test_count ?? (bundleData?.exams?.length || 3);
   const exams = bundleData?.exams || [];
   const published = Boolean(bundleData?.bundle_published);
   const list = exams
@@ -2210,21 +2191,35 @@ function renderAdminExamBundlePanel(className, bundleData) {
         `<li><span class="row-link-main">${i + 1}. ${escapeHtml(ex.subject_title || "")}</span> <span class="muted">${escapeHtml(ex.title)}</span></li>`
     )
     .join("");
-  return `<section class="panel panel-admin-bundle" id="admin-exam-bundle">
-    <h3>Комплексный экзамен</h3>
-    <p class="lead muted">Все тесты публикуются разом. Ученик сдаёт их по очереди: математика → русский → английский.</p>
+  return `<section class="panel panel-admin-tests" id="admin-tests-panel">
+    <h3>Тесты</h3>
+    <p class="lead muted">Класс ${escapeHtml(className)} · сдаются подряд: математика → русский → английский.</p>
+    <div class="admin-tests-timing-block">
+      <p class="muted">Общее время на все тесты (делится поровну): <strong>${count}</strong> тест(а) · ≈ <strong id="admin-timing-per-test">${perTest}</strong> мин на каждый.</p>
+      <label class="admin-timing-total">
+        <span>Общее время</span>
+        <input type="number" id="admin-timing-total" min="15" max="300" step="5" value="${sch.total_minutes ?? 90}" />
+        <span class="muted">мин</span>
+      </label>
+      <p class="muted" id="admin-timing-preview" data-test-count="${count}"></p>
+      <button type="button" class="btn-secondary" id="btn-save-exam-timing">Сохранить время</button>
+      <p class="muted admin-timing-msg" id="admin-timing-msg" hidden></p>
+    </div>
     <ol class="list-plain admin-bundle-order">${list}</ol>
-    <p class="muted">Статус: <strong>${published ? "опубликован для учеников" : "ещё не опубликован"}</strong></p>
-    <button type="button" class="btn-primary" id="btn-publish-exam-bundle"${published ? " hidden" : ""}>Опубликовать весь экзамен для учеников</button>
+    <p class="muted admin-tests-status">Статус: <strong>${published ? "опубликованы для учеников" : "ещё не опубликованы"}</strong></p>
+    <div class="admin-tests-publish-row">
+      <button type="button" class="btn-primary" id="btn-publish-exam-bundle"${published ? " hidden" : ""}>Опубликовать для учеников</button>
+    </div>
     <p class="muted admin-bundle-msg" id="admin-bundle-msg" hidden></p>
   </section>`;
 }
 
-function bindAdminExamTimingPanel(main, className) {
-  const panel = main.querySelector("#admin-exam-timing");
+function bindAdminTestsPanel(main, className) {
+  const panel = main.querySelector("#admin-tests-panel");
   if (!panel) return;
-  const btn = panel.querySelector("#btn-save-exam-timing");
-  const msg = panel.querySelector("#admin-timing-msg");
+
+  const saveBtn = panel.querySelector("#btn-save-exam-timing");
+  const timingMsg = panel.querySelector("#admin-timing-msg");
   const totalInput = panel.querySelector("#admin-timing-total");
   const preview = panel.querySelector("#admin-timing-preview");
   const perTestEl = panel.querySelector("#admin-timing-per-test");
@@ -2234,62 +2229,58 @@ function bindAdminExamTimingPanel(main, className) {
     const total = Number(totalInput?.value) || 90;
     const per = Math.max(5, Math.floor(total / testCount));
     if (perTestEl) perTestEl.textContent = String(per);
-    if (preview) preview.textContent = `После сохранения: ${total} мин ÷ ${testCount} = ${per} мин на тест.`;
+    if (preview) preview.textContent = `${total} мин ÷ ${testCount} = ${per} мин на тест.`;
   };
   totalInput?.addEventListener("input", refreshPreview);
   refreshPreview();
 
-  btn?.addEventListener("click", async () => {
+  saveBtn?.addEventListener("click", async () => {
     const total = Number(totalInput?.value);
-    btn.disabled = true;
+    saveBtn.disabled = true;
     try {
       await api(`/api/portal/class/${encPath(className)}/exam-timing`, {
         method: "POST",
         body: JSON.stringify({ total_minutes: total }),
       });
-      if (msg) {
-        msg.hidden = false;
-        msg.textContent = "Время сохранено.";
+      if (timingMsg) {
+        timingMsg.hidden = false;
+        timingMsg.textContent = "Время сохранено.";
       }
       refreshPreview();
     } catch {
-      if (msg) {
-        msg.hidden = false;
-        msg.textContent = "Не удалось сохранить.";
-        msg.classList.add("error");
+      if (timingMsg) {
+        timingMsg.hidden = false;
+        timingMsg.textContent = "Не удалось сохранить.";
+        timingMsg.classList.add("error");
       }
     } finally {
-      btn.disabled = false;
+      saveBtn.disabled = false;
     }
   });
-}
 
-function bindAdminExamBundlePanel(main, className) {
-  const panel = main.querySelector("#admin-exam-bundle");
-  if (!panel) return;
-  const btn = panel.querySelector("#btn-publish-exam-bundle");
-  const msg = panel.querySelector("#admin-bundle-msg");
-  btn?.addEventListener("click", async () => {
-    btn.disabled = true;
+  const pubBtn = panel.querySelector("#btn-publish-exam-bundle");
+  const pubMsg = panel.querySelector("#admin-bundle-msg");
+  pubBtn?.addEventListener("click", async () => {
+    pubBtn.disabled = true;
     try {
       await api(`/api/portal/class/${encPath(className)}/exam-bundle`, {
         method: "POST",
         body: JSON.stringify({ action: "publish" }),
       });
-      if (msg) {
-        msg.hidden = false;
-        msg.textContent = "Экзамен опубликован. Ученики сдают все тесты по очереди.";
+      if (pubMsg) {
+        pubMsg.hidden = false;
+        pubMsg.textContent = "Тесты опубликованы. Ученики сдают их по очереди.";
       }
-      btn.hidden = true;
+      pubBtn.hidden = true;
       await renderAdminFlow();
     } catch {
-      if (msg) {
-        msg.hidden = false;
-        msg.textContent = "Не удалось опубликовать.";
-        msg.classList.add("error");
+      if (pubMsg) {
+        pubMsg.hidden = false;
+        pubMsg.textContent = "Не удалось опубликовать.";
+        pubMsg.classList.add("error");
       }
     } finally {
-      btn.disabled = false;
+      pubBtn.disabled = false;
     }
   });
 }
