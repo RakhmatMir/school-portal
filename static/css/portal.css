@@ -1335,7 +1335,7 @@ li.student-row .student-row-meta {
   padding: 10px 12px;
   border: 1px solid var(--border);
   border-radius: 10px;
-  background: color-mix(in srgb, var(--border) 25%, transparent);
+  background: color-mix(in srgb, var(--stat-bg) 70%, var(--card));
 }
 
 .notify-item-kind {
