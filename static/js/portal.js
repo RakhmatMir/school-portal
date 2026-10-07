@@ -1943,17 +1943,6 @@ async function loadStaffTestsList() {
 async function renderAdminHome(main, session) {
   const classes = await api("/api/portal/classes");
   const staffTests = isStaffRole() ? await loadStaffTestsList() : [];
-  let adminTestsPanel = "";
-  if (isAdminRole() && classes.length) {
-    const primaryClass = classes[0].class_name;
-    try {
-      const timingData = await api(`/api/portal/class/${encPath(primaryClass)}/exam-timing`);
-      const bundleData = await api(`/api/portal/class/${encPath(primaryClass)}/exam-bundle`);
-      adminTestsPanel = renderAdminTestsPanel(primaryClass, timingData.schedule, bundleData);
-    } catch (err) {
-      console.warn("portal: admin tests panel", err);
-    }
-  }
   const rows = classes.length
     ? classes
         .map(
@@ -1984,10 +1973,9 @@ async function renderAdminHome(main, session) {
     <span class="badge">${escapeHtml(role)}</span>
     <div class="panel">
       <h3>${escapeHtml(session.school_name)}</h3>
-      <p class="lead">Классы — по предметам; ниже список всех тестов.</p>
+      <p class="lead">Выберите класс — там настройка времени, публикация тестов и предметы.</p>
     </div>
     ${renderNotifyRecipientsPanel()}
-    ${adminTestsPanel}
     <div class="panel">
       <h3>Классы</h3>
       <ul class="list-plain">${rows}</ul>
@@ -1995,10 +1983,6 @@ async function renderAdminHome(main, session) {
     ${testsPanel}
   `;
   bindNotifyRecipients(main);
-  if (isAdminRole() && classes.length) {
-    const primaryClass = classes[0].class_name;
-    bindAdminTestsPanel(main, primaryClass);
-  }
   bindStaffHomeTestsList(main, staffTestPools);
   bindRowNav(main, "[data-class-name]", (el) => {
     portalState.staffTestsShortcut = false;
@@ -2014,6 +1998,16 @@ async function renderAdminHome(main, session) {
 
 async function renderAdminClassSubjects(main) {
   const cls = portalState.className;
+  let adminTestsPanel = "";
+  if (isAdminRole()) {
+    try {
+      const timingData = await api(`/api/portal/class/${encPath(cls)}/exam-timing`);
+      const bundleData = await api(`/api/portal/class/${encPath(cls)}/exam-bundle`);
+      adminTestsPanel = renderAdminTestsPanel(cls, timingData.schedule, bundleData);
+    } catch (err) {
+      console.warn("portal: admin tests panel", err);
+    }
+  }
   const data = await api(`/api/portal/class/${encPath(cls)}/subjects`);
   const rows = data.subjects
     .map(
@@ -2026,12 +2020,16 @@ async function renderAdminClassSubjects(main) {
 
   main.innerHTML = `
     <button type="button" class="btn-ghost btn-back" id="btn-back-classes">← К классам</button>
+    ${adminTestsPanel}
     <div class="panel">
       <h3 class="class-detail-title">Класс ${escapeHtml(cls)}</h3>
-      <p class="lead">Предметы</p>
+      <p class="lead">Предметы — откройте тест для проверки вопросов</p>
       <ul class="list-plain">${rows}</ul>
     </div>
   `;
+  if (isAdminRole()) {
+    bindAdminTestsPanel(main, cls);
+  }
   $("btn-back-classes").addEventListener("click", () => {
     portalState.adminView = "home";
     portalState.className = null;
