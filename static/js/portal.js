@@ -167,7 +167,7 @@ function renderNotifyRecipientsPanel(expanded = isNotifyRecipientsPanelOpen()) {
           </span>
         </span>
       </button>
-      <div class="notify-body" id="notify-panel-body"${expanded ? "" : " hidden"}>
+      <div class="notify-body" id="notify-panel-body">
         <p class="lead muted">До ${NOTIFY_RECIPIENTS_MAX} получателей — Telegram ID или email в одном поле. Сохраняется в браузере; отправка будет позже.</p>
         ${listHtml}
         <div class="notify-add-row">
@@ -222,7 +222,6 @@ function bindNotifyRecipients(root) {
     const open = disclosure?.classList.toggle("is-open");
     const isOpen = Boolean(open);
     toggleBtn.setAttribute("aria-expanded", isOpen ? "true" : "false");
-    if (notifyBody) notifyBody.hidden = !isOpen;
     setNotifyRecipientsPanelOpen(isOpen);
   });
 

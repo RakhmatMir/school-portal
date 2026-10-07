@@ -676,7 +676,7 @@ body.exam-guard-open #exam-guard-modal .exam-guard-dialog {
   color: var(--muted);
   font-size: 1.25rem;
   line-height: 1;
-  transition: transform 0.2s ease;
+  transition: transform 0.8s ease;
 }
 
 .panel-collapse.is-open .collapse-chevron {
@@ -684,13 +684,23 @@ body.exam-guard-open #exam-guard-modal .exam-guard-dialog {
 }
 
 .panel-collapse .collapse-body {
-  display: none;
-  padding: 0 22px 20px;
-  border-top: 1px solid var(--border);
+  max-height: 0;
+  overflow: hidden;
+  opacity: 0;
+  padding: 0 22px;
+  border-top: 1px solid transparent;
+  transition:
+    max-height 0.8s ease,
+    opacity 0.8s ease,
+    padding 0.8s ease,
+    border-color 0.8s ease;
 }
 
 .panel-collapse.is-open .collapse-body {
-  display: block;
+  max-height: 4000px;
+  opacity: 1;
+  padding: 0 22px 20px;
+  border-top-color: var(--border);
 }
 
 .panel-collapse .collapse-body > .panel,
@@ -1288,7 +1298,7 @@ li.student-row .student-row-meta {
   border-radius: 8px;
   color: var(--muted);
   transition:
-    transform 0.15s ease,
+    transform 0.8s ease,
     color 0.15s ease,
     background 0.15s ease;
 }
@@ -1309,9 +1319,36 @@ li.student-row .student-row-meta {
 }
 
 .panel-notify .notify-body {
+  max-height: 0;
+  overflow: hidden;
+  opacity: 0;
+  margin-top: 0;
+  padding-top: 0;
+  padding-bottom: 0;
+  border-top: 1px solid transparent;
+  transition:
+    max-height 0.8s ease,
+    opacity 0.8s ease,
+    margin-top 0.8s ease,
+    padding-top 0.8s ease,
+    border-color 0.8s ease;
+}
+
+.panel-notify .notify-disclosure.is-open .notify-body {
+  max-height: 1600px;
+  opacity: 1;
   margin-top: 14px;
   padding-top: 14px;
-  border-top: 1px solid var(--border);
+  border-top-color: var(--border);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .panel-collapse .collapse-body,
+  .panel-notify .notify-body,
+  .panel-collapse .collapse-chevron,
+  .panel-notify .notify-chevron {
+    transition: none;
+  }
 }
 
 .panel-notify .notify-body .lead {
