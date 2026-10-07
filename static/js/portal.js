@@ -1767,9 +1767,9 @@ function bindStaffHomeTestsList(main, pools) {
     portalState.className = t.class_name;
     portalState.subjectCode = t.subject_code;
     portalState.subjectTitle = t.subject_title || t.subject_code;
-    portalState.examId = null;
-    portalState.examTitle = null;
-    portalState.adminView = "subject";
+    portalState.examId = t.id;
+    portalState.examTitle = t.title || null;
+    portalState.adminView = "exam";
     renderAdminFlow();
   });
 }
@@ -2503,9 +2503,24 @@ async function renderAdminExamDetail(main) {
     data.exam_editor || { published: true }
   );
   bindTeacherReportPanel(main, examId);
-  $("btn-back-tests").addEventListener("click", () => {
-    portalState.adminView = "subject";
-    portalState.examId = null;
+  const backTestsBtn = $("btn-back-tests");
+  if (backTestsBtn && portalState.staffTestsShortcut) {
+    backTestsBtn.textContent = "← На главную";
+  }
+  backTestsBtn?.addEventListener("click", () => {
+    if (portalState.staffTestsShortcut) {
+      portalState.staffTestsShortcut = false;
+      portalState.adminView = "home";
+      portalState.className = null;
+      portalState.subjectCode = null;
+      portalState.subjectTitle = null;
+      portalState.examId = null;
+      portalState.examTitle = null;
+    } else {
+      portalState.adminView = "subject";
+      portalState.examId = null;
+      portalState.examTitle = null;
+    }
     renderAdminFlow();
   });
 }
