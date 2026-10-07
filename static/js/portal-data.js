@@ -17,10 +17,15 @@ function dataBasePath() {
 export async function loadPortalBundle() {
   if (!bundlePromise) {
     const url = `${dataBasePath()}/portal.json`;
-    bundlePromise = fetch(url, { cache: "no-cache" }).then((res) => {
-      if (!res.ok) throw new Error("portal_data_load_failed");
-      return res.json();
-    });
+    bundlePromise = fetch(url, { cache: "no-cache" })
+      .then((res) => {
+        if (!res.ok) throw new Error("portal_data_load_failed");
+        return res.json();
+      })
+      .then((bundle) => {
+        enforceClearedStudents(bundle);
+        return bundle;
+      });
   }
   return bundlePromise;
 }
@@ -36,6 +41,27 @@ function loadSubmissions() {
 
 function saveSubmissions(map) {
   localStorage.setItem(SUBMISSIONS_KEY, JSON.stringify(map));
+}
+
+/** Удаляет сдачи учеников из localStorage (список в portal.json → cleared_student_ids). */
+function enforceClearedStudents(bundle) {
+  const ids = new Set((bundle?.cleared_student_ids || []).map((id) => Number(id)).filter(Number.isFinite));
+  for (const u of bundle?.demo_users || []) {
+    if (u.cleared_submissions) ids.add(Number(u.id));
+  }
+  if (!ids.size) return;
+  const map = loadSubmissions();
+  let changed = false;
+  for (const key of Object.keys(map)) {
+    const colon = key.indexOf(":");
+    if (colon < 0) continue;
+    const uid = Number(key.slice(colon + 1));
+    if (ids.has(uid)) {
+      delete map[key];
+      changed = true;
+    }
+  }
+  if (changed) saveSubmissions(map);
 }
 
 function submissionKey(examId, userId) {
@@ -575,6 +601,7 @@ function currentUser() {
 
 export async function dataApi(path, options = {}) {
   const bundle = await loadPortalBundle();
+  enforceClearedStudents(bundle);
   const method = String(options.method || "GET").toUpperCase();
   const user = currentUser();
   const submissions = loadSubmissions();

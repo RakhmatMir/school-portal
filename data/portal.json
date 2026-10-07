@@ -13,6 +13,7 @@
       "bundle_published": true
     }
   },
+  "cleared_student_ids": [401],
   "subjects": [
     {
       "code": "math",
