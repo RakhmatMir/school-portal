@@ -3,6 +3,7 @@
 const PROBLEM_THRESHOLD = 40;
 const SUBMISSIONS_KEY = "portal_site_submissions_v1";
 const TEACHER_REPORTS_KEY = "portal_site_teacher_reports_v1";
+const EXAM_DRAFTS_KEY = "portal_exam_drafts_v1";
 const DEMO_SESSION_KEY = "portal_demo_session_v1";
 
 let bundlePromise = null;
@@ -55,6 +56,67 @@ function loadTeacherReports() {
 
 function saveTeacherReports(set) {
   localStorage.setItem(TEACHER_REPORTS_KEY, JSON.stringify([...set]));
+}
+
+function loadExamDrafts() {
+  try {
+    const raw = localStorage.getItem(EXAM_DRAFTS_KEY);
+    return raw ? JSON.parse(raw) : {};
+  } catch {
+    return {};
+  }
+}
+
+function saveExamDrafts(map) {
+  localStorage.setItem(EXAM_DRAFTS_KEY, JSON.stringify(map));
+}
+
+function getExamDraft(examId) {
+  return loadExamDrafts()[String(examId)] || null;
+}
+
+function normalizeExamQuestions(questions) {
+  if (!Array.isArray(questions)) return [];
+  return questions.map((q) => {
+    const options = (q.options || []).map((o) => String(o).trim()).filter(Boolean);
+    while (options.length < 2) options.push("");
+    const correct = Number(q.correct_index);
+    const correct_index =
+      Number.isFinite(correct) && correct >= 0 && correct < options.length ? correct : 0;
+    return {
+      text: String(q.text || "").trim(),
+      options,
+      correct_index,
+    };
+  });
+}
+
+function isStaffRole(role) {
+  return role === "admin" || role === "teacher";
+}
+
+function isExamPublishedToStudents(examId) {
+  const draft = getExamDraft(examId);
+  if (!draft) return true;
+  return Boolean(draft.published);
+}
+
+function effectiveExamQuestions(bundle, examId, role) {
+  const base = examById(bundle, examId);
+  if (!base) return [];
+  const draft = getExamDraft(examId);
+  const staff = isStaffRole(role);
+  if (draft?.questions?.length && (staff || draft.published)) {
+    return normalizeExamQuestions(draft.questions);
+  }
+  return normalizeExamQuestions(base.questions);
+}
+
+function examRecord(bundle, examId, role) {
+  const base = examById(bundle, examId);
+  if (!base) return null;
+  const questions = effectiveExamQuestions(bundle, examId, role);
+  return { ...base, questions, question_count: questions.length };
 }
 
 function examById(bundle, examId) {
@@ -436,11 +498,15 @@ export async function dataApi(path, options = {}) {
     const tests = testsForClassSubject(bundle, cls, code);
     if (user.role === "student") {
       for (const t of tests) {
+        const published = isExamPublishedToStudents(t.id);
         const sub = getSubmission(submissions, t.id, user.id);
         const released = examResultsReleased(bundle, t.id, submissions);
+        t.published_to_students = published;
+        t.locked = !published;
         t.submitted = sub !== null || t.catalog_key === "done";
         t.results_released = released;
-        if (!t.submitted) t.student_label = "К сдаче";
+        if (!published) t.student_label = "Ждёт публикации";
+        else if (!t.submitted) t.student_label = "К сдаче";
         else if (released) t.student_label = "Сдано";
         else t.student_label = "Сдано · ждём класс";
       }
@@ -452,8 +518,9 @@ export async function dataApi(path, options = {}) {
   if (m && method === "GET") {
     if (!user || (user.role !== "admin" && user.role !== "teacher")) throw new Error("forbidden");
     const examId = Number(m[1]);
-    const ex = examById(bundle, examId);
+    const ex = examRecord(bundle, examId, user.role);
     if (!ex) throw new Error("exam_not_found");
+    const draft = getExamDraft(examId);
     const progress = examClassProgress(bundle, examId, submissions);
     const resultsReleased = examResultsReleased(bundle, examId, submissions);
     const students = rosterForClass(bundle, ex.class_name, examId, submissions, {
@@ -481,14 +548,63 @@ export async function dataApi(path, options = {}) {
       all_submitted: progress.allSubmitted,
       results_released: resultsReleased,
       teacher_report_sent: teacherReports.has(examId),
+      exam_editor: {
+        published: isExamPublishedToStudents(examId),
+        has_draft: Boolean(draft?.questions?.length),
+        updated_at: draft?.updated_at || null,
+      },
     };
+  }
+
+  m = path.match(/^\/api\/portal\/exams\/(\d+)\/draft$/);
+  if (m && method === "POST") {
+    if (!user || !isStaffRole(user.role)) throw new Error("forbidden");
+    const examId = Number(m[1]);
+    const base = examById(bundle, examId);
+    if (!base) throw new Error("exam_not_found");
+    const body = parseBody(options);
+    const questions = normalizeExamQuestions(body.questions || base.questions);
+    const drafts = loadExamDrafts();
+    const prev = drafts[String(examId)] || {};
+    drafts[String(examId)] = {
+      questions,
+      published: body.publish === true ? true : Boolean(prev.published),
+      updated_at: new Date().toISOString(),
+    };
+    saveExamDrafts(drafts);
+    return {
+      ok: true,
+      published: drafts[String(examId)].published,
+      question_count: questions.length,
+    };
+  }
+
+  m = path.match(/^\/api\/portal\/exams\/(\d+)\/publish$/);
+  if (m && method === "POST") {
+    if (!user || !isStaffRole(user.role)) throw new Error("forbidden");
+    const examId = Number(m[1]);
+    const base = examById(bundle, examId);
+    if (!base) throw new Error("exam_not_found");
+    const body = parseBody(options);
+    const drafts = loadExamDrafts();
+    const prev = drafts[String(examId)] || {};
+    const questions = normalizeExamQuestions(
+      body.questions || prev.questions || base.questions
+    );
+    drafts[String(examId)] = {
+      questions,
+      published: true,
+      updated_at: new Date().toISOString(),
+    };
+    saveExamDrafts(drafts);
+    return { ok: true, published: true, question_count: questions.length };
   }
 
   m = path.match(/^\/api\/portal\/exams\/(\d+)\/preview$/);
   if (m && method === "GET") {
     if (!user) throw new Error("not_authenticated");
     const examId = Number(m[1]);
-    const ex = examById(bundle, examId);
+    const ex = examRecord(bundle, examId, user.role);
     if (!ex) throw new Error("exam_not_found");
     if (user.role === "admin" || user.role === "teacher") {
       return {
@@ -498,6 +614,9 @@ export async function dataApi(path, options = {}) {
         submitted: false,
         score_percent: null,
       };
+    }
+    if (!isExamPublishedToStudents(examId)) {
+      throw new Error("exam_not_published");
     }
     const sub = getSubmission(submissions, examId, user.id);
     const progress = examClassProgress(bundle, examId, submissions);
@@ -532,7 +651,8 @@ export async function dataApi(path, options = {}) {
   if (m && method === "POST") {
     if (!user || user.role !== "student") throw new Error("forbidden");
     const examId = Number(m[1]);
-    const ex = examById(bundle, examId);
+    if (!isExamPublishedToStudents(examId)) throw new Error("exam_not_published");
+    const ex = examRecord(bundle, examId, user.role);
     if (!ex) throw new Error("exam_not_found");
     const body = parseBody(options);
     const answers = body.answers || {};

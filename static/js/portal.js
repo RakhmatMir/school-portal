@@ -2073,6 +2073,131 @@ async function fetchExamPreview(examId) {
   return await api(`/api/portal/exams/${examId}/preview`);
 }
 
+const EXAM_EDITOR_LETTERS = ["A", "B", "C", "D", "E", "F"];
+
+function renderTeacherExamEditorPanel(questions, editorMeta) {
+  const published = editorMeta?.published !== false;
+  const badgeClass = published ? "tag tag-ok" : "tag tag-warn";
+  const badgeText = published ? "Опубликован для учеников" : "Черновик — ученики не видят";
+  const cards = questions
+    .map((q, qi) => {
+      const opts = (q.options || []).slice(0, 6);
+      const optFields = opts
+        .map((opt, oi) => {
+          const letter = EXAM_EDITOR_LETTERS[oi] || String(oi + 1);
+          const checked = Number(q.correct_index) === oi ? "checked" : "";
+          return `<label class="teacher-q-opt-row">
+            <input type="radio" name="teacher-q-correct-${qi}" value="${oi}" ${checked} />
+            <span class="teacher-q-opt-letter">${letter}</span>
+            <input type="text" class="teacher-q-opt-input" data-q="${qi}" data-opt="${oi}" value="${escapeHtml(opt)}" />
+          </label>`;
+        })
+        .join("");
+      return `<article class="teacher-q-edit-card" data-q-index="${qi}">
+        <div class="teacher-q-edit-head">
+          <span class="teacher-q-edit-num">Вопрос ${qi + 1}</span>
+        </div>
+        <label class="teacher-q-label">Текст вопроса
+          <textarea class="teacher-q-text" rows="2" data-q="${qi}">${escapeHtml(q.text || "")}</textarea>
+        </label>
+        <div class="teacher-q-opts">${optFields}</div>
+      </article>`;
+    })
+    .join("");
+  return `<section class="panel panel-teacher-exam-editor" id="teacher-exam-editor">
+    <div class="panel-demo-head">
+      <h3>Проверка теста перед учениками</h3>
+      <span class="${badgeClass}" id="exam-publish-badge">${escapeHtml(badgeText)}</span>
+    </div>
+    <p class="lead muted">Исправьте опечатки и варианты ответов. Сохраните черновик, затем нажмите «Опубликовать» — только после этого ученики смогут сдать тест (в этом браузере/на этом устройстве).</p>
+    <div class="teacher-q-edit-list">${cards}</div>
+    <div class="teacher-exam-editor-actions">
+      <button type="button" class="btn-secondary" id="btn-save-exam-draft">Сохранить черновик</button>
+      <button type="button" class="btn-primary" id="btn-publish-exam">Опубликовать для учеников</button>
+    </div>
+    <p class="muted teacher-exam-editor-hint" id="exam-editor-msg" hidden></p>
+  </section>`;
+}
+
+function collectTeacherExamQuestionsFromEditor(root) {
+  const cards = root.querySelectorAll(".teacher-q-edit-card");
+  const questions = [];
+  cards.forEach((card) => {
+    const qi = Number(card.getAttribute("data-q-index"));
+    const textEl = card.querySelector(".teacher-q-text");
+    const text = textEl?.value?.trim() || "";
+    const options = [];
+    card.querySelectorAll(".teacher-q-opt-input").forEach((inp) => {
+      options[Number(inp.getAttribute("data-opt"))] = inp.value.trim();
+    });
+    const compact = options.filter((o) => o != null && String(o).length > 0);
+    const correctRaw = card.querySelector(`input[name="teacher-q-correct-${qi}"]:checked`);
+    const correct_index = correctRaw ? Number(correctRaw.value) : 0;
+    questions.push({
+      text,
+      options: compact.length ? compact : [""],
+      correct_index: Math.min(correct_index, Math.max(0, compact.length - 1)),
+    });
+  });
+  return questions;
+}
+
+function setExamEditorMessage(root, text, isError = false) {
+  const el = root.querySelector("#exam-editor-msg");
+  if (!el) return;
+  if (!text) {
+    el.hidden = true;
+    return;
+  }
+  el.hidden = false;
+  el.textContent = text;
+  el.classList.toggle("error", isError);
+}
+
+function bindTeacherExamEditor(main, examId) {
+  const panel = main.querySelector("#teacher-exam-editor");
+  if (!panel) return;
+  const saveBtn = panel.querySelector("#btn-save-exam-draft");
+  const pubBtn = panel.querySelector("#btn-publish-exam");
+
+  saveBtn?.addEventListener("click", async () => {
+    const questions = collectTeacherExamQuestionsFromEditor(panel);
+    saveBtn.disabled = true;
+    try {
+      await api(`/api/portal/exams/${examId}/draft`, {
+        method: "POST",
+        body: JSON.stringify({ questions }),
+      });
+      setExamEditorMessage(
+        panel,
+        "Черновик сохранён. Нажмите «Опубликовать для учеников», чтобы открыть сдачу с этими вопросами."
+      );
+      await renderAdminFlow();
+    } catch (e) {
+      setExamEditorMessage(panel, "Не удалось сохранить черновик.", true);
+    } finally {
+      saveBtn.disabled = false;
+    }
+  });
+
+  pubBtn?.addEventListener("click", async () => {
+    const questions = collectTeacherExamQuestionsFromEditor(panel);
+    pubBtn.disabled = true;
+    try {
+      await api(`/api/portal/exams/${examId}/publish`, {
+        method: "POST",
+        body: JSON.stringify({ questions }),
+      });
+      setExamEditorMessage(panel, "Тест опубликован. Ученики на этом устройстве могут сдавать обновлённую версию.");
+      await renderAdminFlow();
+    } catch (e) {
+      setExamEditorMessage(panel, "Не удалось опубликовать тест.", true);
+    } finally {
+      pubBtn.disabled = false;
+    }
+  });
+}
+
 async function renderAdminExamDetail(main) {
   const examId = portalState.examId;
   const data = await api(`/api/portal/exams/${examId}/admin`);
@@ -2190,6 +2315,10 @@ async function renderAdminExamDetail(main) {
 
   const sessionPanel = renderExamSessionPanel(ex, data.students);
   const teacherReportPanel = renderTeacherReportPanel(data, examId);
+  const teacherEditorPanel = renderTeacherExamEditorPanel(
+    data.questions,
+    data.exam_editor || { published: true }
+  );
 
   main.innerHTML = `
     <button type="button" class="btn-ghost btn-back" id="btn-back-tests">← К контрольным</button>
@@ -2197,6 +2326,7 @@ async function renderAdminExamDetail(main) {
       <h3 class="class-detail-title">${escapeHtml(ex.title)}</h3>
       ${renderMetricColumns(headerColumns)}
     </div>
+    ${teacherEditorPanel}
     ${teacherReportPanel}
     ${sessionPanel}
     ${studentPreviewPanel}
@@ -2207,6 +2337,7 @@ async function renderAdminExamDetail(main) {
   bindCollapsiblePanels(main);
   bindStudentTableExpand(main);
   bindExamSessionPanel(main, examId, data.students);
+  bindTeacherExamEditor(main, examId);
   bindTeacherReportPanel(main, examId);
   $("btn-back-tests").addEventListener("click", () => {
     portalState.adminView = "subject";
@@ -2418,7 +2549,7 @@ async function renderStudentFlow() {
     const rows = data.tests.length
       ? data.tests
           .map(
-            (t) => `<li class="row-link" role="button" tabindex="0" data-exam-id="${t.id}" data-exam-submitted="${t.results_released ? "1" : "0"}">
+            (t) => `<li class="row-link${t.locked ? " is-locked" : ""}" role="button" tabindex="0" data-exam-id="${t.id}" data-exam-locked="${t.locked ? "1" : "0"}" data-exam-submitted="${t.results_released ? "1" : "0"}">
         <span class="row-link-main">${escapeHtml(t.title)}</span>
         <span class="muted">${escapeHtml(t.student_label || testListMeta(t))}</span>
       </li>`
@@ -2442,6 +2573,18 @@ async function renderStudentFlow() {
     });
     bindRowNav(main, "[data-exam-id]", (el) => {
       if (blockActionIfExamActive()) return;
+      if (el.getAttribute("data-exam-locked") === "1") {
+        let msg = main.querySelector(".student-exam-locked-msg");
+        if (!msg) {
+          main.querySelector(".panel")?.insertAdjacentHTML(
+            "beforeend",
+            `<p class="error student-exam-locked-msg">Тест ещё не опубликован учителем. Подождите, пока учитель проверит вопросы и откроет сдачу.</p>`
+          );
+          msg = main.querySelector(".student-exam-locked-msg");
+        }
+        msg?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+        return;
+      }
       const eid = Number(el.getAttribute("data-exam-id"));
       portalState.openExamAsReview = el.getAttribute("data-exam-submitted") === "1";
       portalState.studentExamReturnHome = false;
@@ -2458,6 +2601,17 @@ async function renderStudentFlow() {
       await renderStudentExamPreview(main);
     } catch (err) {
       console.error("portal student exam", err);
+      if (err.message === "exam_not_published") {
+        main.innerHTML = `
+        <button type="button" class="btn-ghost btn-back" id="btn-student-fallback-back">← К тестам</button>
+        <div class="panel panel-wait"><p class="wait-title">Тест пока недоступен</p>
+        <p class="muted">Учитель ещё не опубликовал этот тест. Зайдите позже.</p></div>`;
+        $("btn-student-fallback-back")?.addEventListener("click", () => {
+          portalState.adminView = "subject";
+          renderStudentFlow();
+        });
+        return;
+      }
       main.innerHTML = `
         <p class="error">Не удалось открыть тест.</p>
         <button type="button" class="btn-ghost btn-back" id="btn-student-fallback-back">← На главную</button>`;
