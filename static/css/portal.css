@@ -223,6 +223,45 @@ body {
   margin: 0 0 10px;
 }
 
+.student-confirm-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: flex-end;
+  margin-top: 18px;
+}
+
+.student-confirm-actions .btn-ghost,
+.student-confirm-actions .btn-primary {
+  width: auto;
+  margin-top: 0;
+  min-width: 7rem;
+}
+
+.admin-demo-reset {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px dashed var(--border);
+}
+
+.admin-demo-reset .field-inline {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin: 10px 0;
+}
+
+.admin-demo-reset input {
+  width: 6rem;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--input-bg);
+  color: var(--text);
+  font: inherit;
+}
+
 .exam-guard-dialog .exam-guard-reason {
   margin: 0 0 8px;
 }

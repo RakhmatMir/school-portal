@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <title>Школьный портал</title>
-  <link rel="stylesheet" href="static/css/portal.css?v=84" />
+  <link rel="stylesheet" href="static/css/portal.css?v=86" />
   <script>
     (function () {
       var t = localStorage.getItem("portal_theme");
@@ -57,6 +57,18 @@
     </section>
     <button type="button" class="btn-scroll-top" id="btn-scroll-top" aria-label="Наверх" title="Наверх">↑</button>
 
+    <div class="exam-guard-modal hidden" id="student-confirm-modal" role="dialog" aria-modal="true" aria-labelledby="student-confirm-title" aria-describedby="student-confirm-desc">
+      <div class="exam-guard-backdrop" id="student-confirm-backdrop"></div>
+      <div class="exam-guard-dialog panel">
+        <h3 id="student-confirm-title">Подтверждение</h3>
+        <p id="student-confirm-desc"></p>
+        <div class="student-confirm-actions">
+          <button type="button" class="btn-ghost" id="student-confirm-cancel">Отмена</button>
+          <button type="button" class="btn-primary" id="student-confirm-ok">Начать</button>
+        </div>
+      </div>
+    </div>
+
     <div class="exam-guard-modal hidden" id="exam-guard-modal" role="alertdialog" aria-modal="true" aria-labelledby="exam-guard-title" aria-describedby="exam-guard-desc">
       <div class="exam-guard-backdrop" id="exam-guard-backdrop"></div>
       <div class="exam-guard-dialog panel">
@@ -68,6 +80,6 @@
       </div>
     </div>
   </div>
-  <script src="static/js/portal.js?v=84" type="module"></script>
+  <script src="static/js/portal.js?v=86" type="module"></script>
 </body>
 </html>

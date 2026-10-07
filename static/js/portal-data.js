@@ -918,6 +918,33 @@ export async function dataApi(path, options = {}) {
     };
   }
 
+  if (path === "/api/portal/admin/reset-student-progress" && method === "POST") {
+    if (!user || user.role !== "admin") throw new Error("forbidden");
+    const body = parseBody(options);
+    const login = String(body.login || "").trim().toLowerCase();
+    const users = bundle.demo_users || [];
+    const target = users.find((u) => u.login.toLowerCase() === login);
+    if (!target || target.role !== "student" || !target.class_name) throw new Error("bad_request");
+    const map = loadSubmissions();
+    const exams = classExamBundleList(bundle, target.class_name);
+    let cleared = 0;
+    for (const ex of exams) {
+      const key = submissionKey(ex.id, target.id);
+      if (map[key]) {
+        delete map[key];
+        cleared++;
+      }
+    }
+    saveSubmissions(map);
+    return {
+      ok: true,
+      login: target.login,
+      full_name: target.full_name,
+      cleared,
+      exam_count: exams.length,
+    };
+  }
+
   m = path.match(/^\/api\/portal\/exams\/(\d+)\/send-teacher-report$/);
   if (m && method === "POST") {
     if (!user || user.role !== "admin") throw new Error("forbidden");
