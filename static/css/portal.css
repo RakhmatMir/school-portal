@@ -1097,6 +1097,20 @@ li.student-row .student-row-meta {
   margin-top: 12px;
 }
 
+.panel-admin-bundle .admin-bundle-order {
+  margin: 12px 0;
+}
+
+.bundle-steps {
+  margin: 12px 0 16px;
+}
+
+.bundle-step-mark {
+  display: inline-block;
+  width: 1.2rem;
+  font-weight: 700;
+}
+
 .teacher-exam-editor-hint.error {
   color: #f87171;
 }

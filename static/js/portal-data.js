@@ -6,7 +6,7 @@ const TEACHER_REPORTS_KEY = "portal_site_teacher_reports_v1";
 const EXAM_DRAFTS_KEY = "portal_exam_drafts_v1";
 const EXAM_SCHEDULE_KEY = "portal_exam_schedule_v1";
 const DEMO_SESSION_KEY = "portal_demo_session_v1";
-const TIMING_SUBJECT_CODES = ["math", "russian", "english"];
+const BUNDLE_SUBJECT_ORDER = ["math", "russian", "english"];
 
 let bundlePromise = null;
 
@@ -93,46 +93,93 @@ function saveExamSchedules(map) {
 function defaultClassExamSchedule() {
   return {
     total_minutes: 90,
-    subject_minutes: {
-      math: 30,
-      russian: 30,
-      english: 30,
-    },
+    bundle_published: false,
   };
+}
+
+function classExamBundleList(bundle, className) {
+  const order = Object.fromEntries(BUNDLE_SUBJECT_ORDER.map((c, i) => [c, i]));
+  return bundle.exams
+    .filter((e) => e.class_name === className)
+    .sort((a, b) => (order[a.subject_code] ?? 99) - (order[b.subject_code] ?? 99));
+}
+
+function isClassBundlePublished(className) {
+  const row = loadExamSchedules()[className];
+  if (row?.bundle_published) return true;
+  return false;
 }
 
 function getClassExamSchedule(className) {
   const all = loadExamSchedules();
   const row = all[className];
-  if (!row) return defaultClassExamSchedule();
-  const subject_minutes = { ...defaultClassExamSchedule().subject_minutes, ...(row.subject_minutes || {}) };
+  const total_minutes = Number(row?.total_minutes) || 90;
   return {
-    total_minutes: Number(row.total_minutes) || 90,
-    subject_minutes,
+    total_minutes,
+    bundle_published: Boolean(row?.bundle_published),
+  };
+}
+
+function classBundleTiming(bundle, className) {
+  const exams = classExamBundleList(bundle, className);
+  const schedule = getClassExamSchedule(className);
+  const test_count = exams.length || 1;
+  const minutes_per_test = Math.max(5, Math.floor(schedule.total_minutes / test_count));
+  return {
+    ...schedule,
+    test_count,
+    minutes_per_test,
+    exam_ids: exams.map((e) => e.id),
   };
 }
 
 function saveClassExamSchedule(className, schedule) {
   const all = loadExamSchedules();
+  const prev = all[className] || {};
   all[className] = {
-    total_minutes: Number(schedule.total_minutes) || 90,
-    subject_minutes: schedule.subject_minutes || {},
+    total_minutes: Number(schedule.total_minutes) || Number(prev.total_minutes) || 90,
+    bundle_published:
+      schedule.bundle_published !== undefined
+        ? Boolean(schedule.bundle_published)
+        : Boolean(prev.bundle_published),
     updated_at: new Date().toISOString(),
   };
   saveExamSchedules(all);
   return all[className];
 }
 
+function publishClassExamBundle(bundle, className) {
+  const timing = classBundleTiming(bundle, className);
+  saveClassExamSchedule(className, {
+    total_minutes: timing.total_minutes,
+    bundle_published: true,
+  });
+  const drafts = loadExamDrafts();
+  for (const ex of classExamBundleList(bundle, className)) {
+    const prev = drafts[String(ex.id)] || {};
+    const questions = prev.questions?.length ? prev.questions : ex.questions;
+    drafts[String(ex.id)] = {
+      questions: normalizeExamQuestions(questions),
+      published: true,
+      duration_minutes: timing.minutes_per_test,
+      updated_at: new Date().toISOString(),
+    };
+  }
+  saveExamDrafts(drafts);
+  return classBundleTiming(bundle, className);
+}
+
 function resolveExamDurationMinutes(bundle, examRow) {
   if (!examRow) return 25;
-  const draft = getExamDraft(examRow.id);
-  if (draft?.duration_minutes != null && Number.isFinite(Number(draft.duration_minutes))) {
-    return Number(draft.duration_minutes);
+  return classBundleTiming(bundle, examRow.class_name).minutes_per_test;
+}
+
+function nextBundleExamIdForStudent(bundle, className, userId, submissions) {
+  if (!isClassBundlePublished(className)) return null;
+  for (const ex of classExamBundleList(bundle, className)) {
+    if (!getSubmission(submissions, ex.id, userId)) return ex.id;
   }
-  const schedule = getClassExamSchedule(examRow.class_name);
-  const fromSubject = schedule.subject_minutes?.[examRow.subject_code];
-  if (fromSubject != null && Number.isFinite(Number(fromSubject))) return Number(fromSubject);
-  return examRow.duration_minutes ?? 25;
+  return null;
 }
 
 function normalizeExamQuestions(questions) {
@@ -157,12 +204,14 @@ function isAdminRole(role) {
 
 function isExamPublishedToStudents(bundle, examId) {
   const base = examById(bundle, examId);
-  if (base?.published_to_students === true) return true;
+  if (!base) return false;
+  if (base.published_to_students === true) return true;
+  const inBundle = classExamBundleList(bundle, base.class_name).some(
+    (e) => Number(e.id) === Number(examId)
+  );
+  if (inBundle) return isClassBundlePublished(base.class_name);
   const draft = getExamDraft(examId);
-  if (base?.requires_teacher_publish) {
-    return Boolean(draft?.published);
-  }
-  if (!draft) return true;
+  if (!draft) return false;
   return Boolean(draft.published);
 }
 
@@ -636,19 +685,75 @@ export async function dataApi(path, options = {}) {
     if (!user || user.role !== "admin") throw new Error("forbidden");
     const cls = decodeURIComponent(m[1]);
     if (method === "GET") {
-      return { class_name: cls, schedule: getClassExamSchedule(cls) };
+      return { class_name: cls, schedule: classBundleTiming(bundle, cls) };
     }
     if (method === "POST") {
       const body = parseBody(options);
-      const subject_minutes = {};
-      for (const code of TIMING_SUBJECT_CODES) {
-        const v = Number(body.subject_minutes?.[code]);
-        if (Number.isFinite(v) && v > 0) subject_minutes[code] = Math.round(v);
-      }
       const total_minutes = Math.round(Number(body.total_minutes) || 90);
-      const saved = saveClassExamSchedule(cls, { total_minutes, subject_minutes });
-      return { ok: true, class_name: cls, schedule: saved };
+      saveClassExamSchedule(cls, { total_minutes });
+      const schedule = classBundleTiming(bundle, cls);
+      return { ok: true, class_name: cls, schedule };
     }
+  }
+
+  m = path.match(/^\/api\/portal\/class\/([^/]+)\/exam-bundle$/);
+  if (m) {
+    const cls = decodeURIComponent(m[1]);
+    if (method === "GET") {
+      if (!user) throw new Error("not_authenticated");
+      const timing = classBundleTiming(bundle, cls);
+      const exams = classExamBundleList(bundle, cls).map((ex) => ({
+        id: ex.id,
+        title: ex.title,
+        subject_title: ex.subject_title,
+        subject_code: ex.subject_code,
+        question_count: ex.question_count,
+        published: isExamPublishedToStudents(bundle, ex.id),
+      }));
+      return {
+        class_name: cls,
+        schedule: timing,
+        exams,
+        bundle_published: timing.bundle_published,
+      };
+    }
+    if (method === "POST") {
+      if (!user || user.role !== "admin") throw new Error("forbidden");
+      const body = parseBody(options);
+      if (body.action === "publish") {
+        const schedule = publishClassExamBundle(bundle, cls);
+        return { ok: true, published: true, schedule };
+      }
+      throw new Error("bad_request");
+    }
+  }
+
+  if (path === "/api/portal/my/exam-bundle" && method === "GET") {
+    if (!user || user.role !== "student") throw new Error("forbidden");
+    const cls = user.class_name || "6Б";
+    const timing = classBundleTiming(bundle, cls);
+    const ordered = classExamBundleList(bundle, cls);
+    const tests = ordered.map((ex) => {
+      const sub = getSubmission(submissions, ex.id, user.id);
+      return {
+        exam_id: ex.id,
+        title: ex.title,
+        subject_title: ex.subject_title,
+        submitted: sub !== null,
+      };
+    });
+    const next_exam_id = nextBundleExamIdForStudent(bundle, cls, user.id, submissions);
+    const all_submitted = ordered.length > 0 && tests.every((t) => t.submitted);
+    return {
+      class_name: cls,
+      published: timing.bundle_published,
+      total_minutes: timing.total_minutes,
+      minutes_per_test: timing.minutes_per_test,
+      test_count: timing.test_count,
+      tests,
+      next_exam_id,
+      all_submitted,
+    };
   }
 
   m = path.match(/^\/api\/portal\/exams\/(\d+)\/draft$/);
