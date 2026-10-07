@@ -4,4 +4,4 @@
 
 Если 404: **Settings → Pages → GitHub Actions**, затем **Actions → Deploy GitHub Pages → Run workflow**.
 
-Данные и вход: **`data/portal.json`**. Логины: `student1` / `student123`, `teacher` / `teacher123`, `admin` / `admin123`.
+Данные и вход: **`data/portal.json`**. Ученики 6Б: `6b01`–`6b19` / `6b2026` (таблица в `data/6b-student-logins.txt`). Учитель: `teacher` / `teacher123`. Админ: `admin` / `admin123`.

@@ -66,7 +66,12 @@ function stripQuestions(ex) {
   return rest;
 }
 
+function rosterSize(bundle, className) {
+  return classRoster(bundle, className).length;
+}
+
 function testsForClassSubject(bundle, className, subjectCode) {
+  const classTotal = rosterSize(bundle, className);
   return bundle.exams
     .filter((ex) => ex.class_name === className && ex.subject_code === subjectCode)
     .map((ex) => ({
@@ -78,8 +83,8 @@ function testsForClassSubject(bundle, className, subjectCode) {
       catalog_key: ex.catalog_key,
       duration_minutes: ex.duration_minutes,
       question_count: ex.question_count,
-      submitted_count: ex.catalog_key === "done" ? 2 : 0,
-      class_total: 24,
+      submitted_count: 0,
+      class_total: classTotal,
     }));
 }
 
@@ -94,8 +99,8 @@ function staffTestsList(bundle) {
     kind_label: ex.kind_label,
     catalog_key: ex.catalog_key,
     question_count: ex.question_count,
-    submitted_count: ex.catalog_key === "done" ? 2 : 0,
-    class_total: 24,
+    submitted_count: 0,
+    class_total: rosterSize(bundle, ex.class_name),
   }));
 }
 
