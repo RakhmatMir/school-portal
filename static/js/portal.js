@@ -1971,10 +1971,6 @@ async function renderAdminHome(main, session) {
     : "";
   main.innerHTML = `
     <span class="badge">${escapeHtml(role)}</span>
-    <div class="panel">
-      <h3>${escapeHtml(session.school_name)}</h3>
-      <p class="lead">Выберите класс — там настройка времени, публикация тестов и предметы.</p>
-    </div>
     ${renderNotifyRecipientsPanel()}
     <div class="panel">
       <h3>Классы</h3>
