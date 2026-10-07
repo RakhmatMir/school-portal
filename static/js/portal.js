@@ -2269,7 +2269,7 @@ function bindTeacherExamEditor(main, examId, examMeta, initialQuestions, editorM
   const patchBtn = panel.querySelector("#btn-download-exam-patch");
   const previewRoot = panel.querySelector("#teacher-exam-live-preview");
   let previewTimer = null;
-  let baselineQuestions = JSON.parse(teacherExamQuestionsSnapshot(initialQuestions || []));
+  let baselineQuestions = initialQuestions || [];
   let publishedToStudents = editorMeta?.published !== false;
   const needsSitePublish = Boolean(
     examMeta?.requires_teacher_publish && examMeta?.published_to_students !== true
