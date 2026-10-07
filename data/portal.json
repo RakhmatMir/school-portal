@@ -4,15 +4,10 @@
     {
       "class_name": "6Б",
       "student_count": 19,
-      "test_count": 2
+      "test_count": 1
     }
   ],
   "subjects": [
-    {
-      "code": "math",
-      "title": "Математика",
-      "test_count": 1
-    },
     {
       "code": "english",
       "title": "Английский язык",
@@ -21,92 +16,71 @@
   ],
   "exams": [
     {
-      "id": 101,
-      "class_name": "6Б",
-      "subject_code": "math",
-      "subject_title": "Математика",
-      "title": "Контрольная №2 — дроби",
-      "control_date": "04.10.2026",
-      "duration_minutes": 13,
-      "kind_label": "Контрольная",
-      "phase": "active",
-      "catalog_key": "todo",
-      "question_count": 3,
-      "questions": [
-        {
-          "text": "Сколько будет 12 + 8?",
-          "options": [
-            "18",
-            "20",
-            "21",
-            "19"
-          ],
-          "correct_index": 1
-        },
-        {
-          "text": "Choose the correct form: She ___ to school every day.",
-          "options": [
-            "go",
-            "goes",
-            "going",
-            "gone"
-          ],
-          "correct_index": 1
-        },
-        {
-          "text": "Единица силы в SI — это…",
-          "options": [
-            "Джоуль",
-            "Ньютон",
-            "Паскаль",
-            "Ватт"
-          ],
-          "correct_index": 1
-        }
-      ]
-    },
-    {
       "id": 102,
       "class_name": "6Б",
       "subject_code": "english",
       "subject_title": "Английский язык",
-      "title": "Unit 5 — Grammar",
-      "control_date": "01.10.2026",
-      "duration_minutes": 15,
-      "kind_label": "Тест",
+      "title": "A1 — Choose the correct answer (Tursunova Barno)",
+      "control_date": "07.10.2026",
+      "duration_minutes": 25,
+      "kind_label": "Тест A1",
       "phase": "active",
       "catalog_key": "todo",
-      "question_count": 3,
+      "question_count": 10,
       "questions": [
         {
-          "text": "Сколько будет 12 + 8?",
-          "options": [
-            "18",
-            "20",
-            "21",
-            "19"
-          ],
+          "text": "___ your brother usually celebrate his birthday with his classmates?",
+          "options": ["Does", "Do", "Doesn't"],
+          "correct_index": 0
+        },
+        {
+          "text": "My birthday is on the ___ of September, and I am ___ years old.",
+          "options": ["twenty-one / twenty-first", "twenty-first / twenty-one", "twenty-first / twenty-first"],
           "correct_index": 1
         },
         {
-          "text": "Choose the correct form: She ___ to school every day.",
-          "options": [
-            "go",
-            "goes",
-            "going",
-            "gone"
-          ],
+          "text": "They ___ usually have a party on weekdays because their parents work.",
+          "options": ["doesn't", "does", "don't"],
+          "correct_index": 2
+        },
+        {
+          "text": "___ your parents buy you a present every year?",
+          "options": ["Do", "Does", "Doesn't"],
+          "correct_index": 0
+        },
+        {
+          "text": "My sister was born on the ___ of February. She is ___ years old now.",
+          "options": ["twelve / twelfth", "twelfth / twelve", "twelfth / twelfth"],
           "correct_index": 1
         },
         {
-          "text": "Единица силы в SI — это…",
+          "text": "Anna ___ like big birthday parties, but she ___ enjoy having dinner with her family.",
+          "options": ["doesn't / does", "don't / does", "doesn't / do"],
+          "correct_index": 0
+        },
+        {
+          "text": "Which sentence is correct?",
           "options": [
-            "Джоуль",
-            "Ньютон",
-            "Паскаль",
-            "Ватт"
+            "Does they have a birthday party every year?",
+            "Do they has a birthday party every year?",
+            "Do they have a birthday party every year?"
           ],
+          "correct_index": 2
+        },
+        {
+          "text": "I am ___ years old. My birthday is on the ___ of March.",
+          "options": ["thirty / thirtieth", "thirtieth / thirty", "thirteen / thirteenth"],
+          "correct_index": 0
+        },
+        {
+          "text": "“___ you have your birthday party at home?” — “No, we ___.”",
+          "options": ["Does / don't", "Do / don't", "Do / doesn't"],
           "correct_index": 1
+        },
+        {
+          "text": "My birthday is on the ___ of November. I usually invite ___ friends.",
+          "options": ["twenty-second / twenty-two", "twenty-two / twenty-second", "twenty-second / twenty-second"],
+          "correct_index": 0
         }
       ]
     }
