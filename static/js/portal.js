@@ -150,24 +150,24 @@ function renderNotifyRecipientsPanel(expanded = isNotifyRecipientsPanelOpen()) {
         .join("")}</ul>`
     : `<p class="muted notify-empty">Получателей пока нет — добавьте Telegram ID или email ниже.</p>`;
   const atMax = contacts.length >= NOTIFY_RECIPIENTS_MAX;
-  const openAttr = expanded ? " open" : "";
+  const openClass = expanded ? " is-open" : "";
   const summaryCount =
     contacts.length > 0
       ? `<span class="muted notify-summary-count">${contacts.length} из ${NOTIFY_RECIPIENTS_MAX}</span>`
       : "";
   return `<div class="panel panel-demo panel-notify" id="panel-notify">
-    <details class="notify-disclosure"${openAttr}>
-      <summary class="notify-summary" aria-label="Уведомления о сдаче, нажмите чтобы раскрыть">
+    <div class="notify-disclosure${openClass}">
+      <button type="button" class="notify-summary" id="btn-notify-toggle" aria-expanded="${expanded ? "true" : "false"}" aria-controls="notify-panel-body">
         <span class="notify-summary-row">
-          <h3 class="notify-summary-title">Уведомления о сдаче</h3>
+          <span class="notify-summary-title">Уведомления о сдаче</span>
           <span class="tag tag-demo">Демо</span>
           ${summaryCount}
-          <span class="notify-chevron" aria-hidden="true" title="Раскрыть">
+          <span class="notify-chevron" aria-hidden="true">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
           </span>
         </span>
-      </summary>
-      <div class="notify-body">
+      </button>
+      <div class="notify-body" id="notify-panel-body"${expanded ? "" : " hidden"}>
         <p class="lead muted">До ${NOTIFY_RECIPIENTS_MAX} получателей — Telegram ID или email в одном поле. Сохраняется в браузере; отправка будет позже.</p>
         ${listHtml}
         <div class="notify-add-row">
@@ -180,7 +180,7 @@ function renderNotifyRecipientsPanel(expanded = isNotifyRecipientsPanelOpen()) {
         <p class="muted notify-counter">Добавлено ${contacts.length} из ${NOTIFY_RECIPIENTS_MAX}</p>
         <p class="demo-save-hint muted" id="notify-save-hint" hidden>Сохранено локально (демо)</p>
       </div>
-    </details>
+    </div>
   </div>`;
 }
 
@@ -193,8 +193,8 @@ function bindNotifyRecipients(root) {
     const scrollY = window.scrollY;
     const hadFocus = document.activeElement?.id === "notify-input";
     const wasOpen =
-      panelEl?.querySelector(".notify-disclosure")?.open ?? isNotifyRecipientsPanelOpen();
-    if (wasOpen) setNotifyRecipientsPanelOpen(true);
+      panelEl?.querySelector(".notify-disclosure")?.classList.contains("is-open") ??
+      isNotifyRecipientsPanelOpen();
     if (!panelEl?.parentElement) return;
     const next = document.createElement("div");
     next.innerHTML = renderNotifyRecipientsPanel(wasOpen);
@@ -216,8 +216,14 @@ function bindNotifyRecipients(root) {
   };
 
   const disclosure = root.querySelector(".notify-disclosure");
-  disclosure?.addEventListener("toggle", () => {
-    setNotifyRecipientsPanelOpen(Boolean(disclosure.open));
+  const toggleBtn = root.querySelector("#btn-notify-toggle");
+  const notifyBody = root.querySelector("#notify-panel-body");
+  toggleBtn?.addEventListener("click", () => {
+    const open = disclosure?.classList.toggle("is-open");
+    const isOpen = Boolean(open);
+    toggleBtn.setAttribute("aria-expanded", isOpen ? "true" : "false");
+    if (notifyBody) notifyBody.hidden = !isOpen;
+    setNotifyRecipientsPanelOpen(isOpen);
   });
 
   const input = root.querySelector("#notify-input");

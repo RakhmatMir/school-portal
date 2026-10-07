@@ -1241,32 +1241,33 @@ li.student-row .student-row-meta {
 
 .panel-notify .notify-summary {
   display: block;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
   cursor: pointer;
-  list-style: none;
-  list-style-type: none;
   user-select: none;
-}
-
-.panel-notify .notify-summary::-webkit-details-marker,
-.panel-notify .notify-summary::marker {
-  display: none !important;
-  content: "" !important;
-  font-size: 0;
-  width: 0;
-  height: 0;
 }
 
 .panel-notify .notify-summary-row {
   display: flex;
+  flex-wrap: nowrap;
   align-items: center;
   gap: 10px;
   min-height: 2.25rem;
+  width: 100%;
 }
 
 .panel-notify .notify-summary-title {
   margin: 0;
   font-size: 1.05rem;
+  font-weight: 700;
   flex: 0 1 auto;
+  white-space: nowrap;
 }
 
 .panel-notify .notify-summary-count {
@@ -1301,7 +1302,7 @@ li.student-row .student-row-meta {
   background: var(--ghost-hover);
 }
 
-.panel-notify .notify-disclosure[open] .notify-chevron {
+.panel-notify .notify-disclosure.is-open .notify-chevron {
   transform: rotate(180deg);
   color: var(--accent);
 }
