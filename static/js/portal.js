@@ -168,17 +168,19 @@ function renderNotifyRecipientsPanel(expanded = isNotifyRecipientsPanelOpen()) {
         </span>
       </button>
       <div class="notify-body" id="notify-panel-body">
-        <p class="lead muted">До ${NOTIFY_RECIPIENTS_MAX} получателей — Telegram ID или email в одном поле. Сохраняется в браузере; отправка будет позже.</p>
-        ${listHtml}
-        <div class="notify-add-row">
-          <label class="field notify-add-field">
-            <span>Контакт</span>
-            <input type="text" class="notify-input" id="notify-input" placeholder="123456789 или teacher@school.uz" autocomplete="off" ${atMax ? "disabled" : ""} />
-          </label>
-          <button type="button" class="btn-primary btn-notify-add" id="btn-notify-add" ${atMax ? "disabled" : ""}>Добавить</button>
+        <div class="notify-body-inner">
+          <p class="lead muted">До ${NOTIFY_RECIPIENTS_MAX} получателей — Telegram ID или email в одном поле. Сохраняется в браузере; отправка будет позже.</p>
+          ${listHtml}
+          <div class="notify-add-row">
+            <label class="field notify-add-field">
+              <span>Контакт</span>
+              <input type="text" class="notify-input" id="notify-input" placeholder="123456789 или teacher@school.uz" autocomplete="off" ${atMax ? "disabled" : ""} />
+            </label>
+            <button type="button" class="btn-primary btn-notify-add" id="btn-notify-add" ${atMax ? "disabled" : ""}>Добавить</button>
+          </div>
+          <p class="muted notify-counter">Добавлено ${contacts.length} из ${NOTIFY_RECIPIENTS_MAX}</p>
+          <p class="demo-save-hint muted" id="notify-save-hint" hidden>Сохранено локально (демо)</p>
         </div>
-        <p class="muted notify-counter">Добавлено ${contacts.length} из ${NOTIFY_RECIPIENTS_MAX}</p>
-        <p class="demo-save-hint muted" id="notify-save-hint" hidden>Сохранено локально (демо)</p>
       </div>
     </div>
   </div>`;
@@ -1023,7 +1025,7 @@ function renderCollapsiblePanel({ title, hint, hintHtml, open, bodyHtml }) {
         </span>
         <span class="collapse-chevron" aria-hidden="true">›</span>
       </button>
-      <div class="collapse-body">${bodyHtml}</div>
+      <div class="collapse-body"><div class="collapse-body-inner">${bodyHtml}</div></div>
     </section>`;
 }
 
@@ -1454,6 +1456,7 @@ function renderStudentResultCard(t, { orderIndex, total, highlight }) {
         <span class="collapse-chevron" aria-hidden="true">›</span>
       </button>
       <div class="collapse-body">
+        <div class="collapse-body-inner">
         <div class="student-result-details">
           <p class="muted student-result-meta">${escapeHtml(t.title)}${t.control_date ? ` · ${escapeHtml(t.control_date)}` : ""}${t.score_line ? ` · ${escapeHtml(t.score_line)}` : ""}</p>
           ${renderMetricColumns([
@@ -1464,6 +1467,7 @@ function renderStudentResultCard(t, { orderIndex, total, highlight }) {
             { label: "Класс", value: `${t.class_submitted ?? "—"} / ${t.class_total ?? "—"}` },
           ])}
           <button type="button" class="btn-ghost btn-result-detail" data-exam-id="${t.exam_id}" data-subject-code="${escapeHtml(t.subject_code || "")}">Подробные ответы</button>
+        </div>
         </div>
       </div>
     </article>`;

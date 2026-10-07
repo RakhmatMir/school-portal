@@ -684,32 +684,34 @@ body.exam-guard-open #exam-guard-modal .exam-guard-dialog {
 }
 
 .panel-collapse .collapse-body {
-  max-height: 0;
-  overflow: hidden;
-  opacity: 0;
+  display: grid;
+  grid-template-rows: 0fr;
   padding: 0 22px;
   border-top: 1px solid transparent;
   transition:
-    max-height 0.8s ease,
-    opacity 0.8s ease,
-    padding 0.8s ease,
+    grid-template-rows 0.8s ease,
+    padding-bottom 0.8s ease,
     border-color 0.8s ease;
 }
 
+.panel-collapse .collapse-body-inner {
+  overflow: hidden;
+  min-height: 0;
+}
+
 .panel-collapse.is-open .collapse-body {
-  max-height: 4000px;
-  opacity: 1;
-  padding: 0 22px 20px;
+  grid-template-rows: 1fr;
+  padding-bottom: 20px;
   border-top-color: var(--border);
 }
 
-.panel-collapse .collapse-body > .panel,
-.panel-collapse .collapse-body > .panel-warn {
+.panel-collapse .collapse-body-inner > .panel,
+.panel-collapse .collapse-body-inner > .panel-warn {
   margin-top: 16px;
   margin-bottom: 0;
 }
 
-.panel-collapse .collapse-body > .panel + .panel {
+.panel-collapse .collapse-body-inner > .panel + .panel {
   margin-top: 12px;
 }
 
@@ -1319,24 +1321,25 @@ li.student-row .student-row-meta {
 }
 
 .panel-notify .notify-body {
-  max-height: 0;
-  overflow: hidden;
-  opacity: 0;
+  display: grid;
+  grid-template-rows: 0fr;
   margin-top: 0;
   padding-top: 0;
-  padding-bottom: 0;
   border-top: 1px solid transparent;
   transition:
-    max-height 0.8s ease,
-    opacity 0.8s ease,
+    grid-template-rows 0.8s ease,
     margin-top 0.8s ease,
     padding-top 0.8s ease,
     border-color 0.8s ease;
 }
 
+.panel-notify .notify-body-inner {
+  overflow: hidden;
+  min-height: 0;
+}
+
 .panel-notify .notify-disclosure.is-open .notify-body {
-  max-height: 1600px;
-  opacity: 1;
+  grid-template-rows: 1fr;
   margin-top: 14px;
   padding-top: 14px;
   border-top-color: var(--border);
