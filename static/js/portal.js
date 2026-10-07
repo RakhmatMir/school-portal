@@ -1904,7 +1904,10 @@ function updateBreadcrumbs() {
 
 function bindRowNav(main, selector, onPick) {
   main.querySelectorAll(selector).forEach((el) => {
-    const go = () => onPick(el);
+    const go = (e) => {
+      const row = e?.target?.closest?.(selector) || el;
+      onPick(row);
+    };
     el.addEventListener("click", go);
     el.addEventListener("keydown", (e) => {
       if (e.key === "Enter" || e.key === " ") {
@@ -1947,7 +1950,7 @@ async function renderAdminHome(main, session) {
   const testsPanel = isStaffRole()
     ? `<div class="panel panel-staff-tests">
       <h3>Тесты</h3>
-      <p class="lead muted staff-tests-hint">Как через «Классы»: нажмите тест → предмет → список контрольных.</p>
+      <p class="lead muted staff-tests-hint">Нажмите тест — откроется проверка и настройка перед учениками.</p>
       <div class="staff-tests-pools">
         ${renderStaffTestsPool("active", "К сдаче", activeTests)}
         ${renderStaffTestsPool("done", "Пройденные", doneTests)}
@@ -2022,6 +2025,14 @@ async function renderAdminSubjectTests(main) {
   const code = portalState.subjectCode;
   const data = await api(`/api/portal/class/${encPath(cls)}/subjects/${code}/tests`);
   portalState.subjectTitle = data.subject_title || portalState.subjectTitle;
+  if (data.tests.length === 1) {
+    const only = data.tests[0];
+    portalState.adminView = "exam";
+    portalState.examId = only.id;
+    portalState.examTitle = only.title || null;
+    await renderAdminExamDetail(main);
+    return;
+  }
   const rows = data.tests.length
     ? data.tests
         .map(
