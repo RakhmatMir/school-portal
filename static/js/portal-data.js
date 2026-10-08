@@ -3,7 +3,7 @@
 const PROBLEM_THRESHOLD = 40;
 const SUBMISSIONS_KEY = "portal_site_submissions_v1";
 const TEACHER_REPORTS_KEY = "portal_site_teacher_reports_v1";
-const EXAM_DRAFTS_KEY = "portal_exam_drafts_v1";
+const EXAM_DRAFTS_KEY = "portal_exam_drafts_v2";
 const EXAM_SCHEDULE_KEY = "portal_exam_schedule_v1";
 const DEMO_SESSION_KEY = "portal_demo_session_v1";
 const BUNDLE_SUBJECT_ORDER = ["math", "russian", "english"];
@@ -14,9 +14,18 @@ function dataBasePath() {
   return String(window.PORTAL_DATA_BASE || "data").replace(/\/$/, "");
 }
 
+function migrateLocalExamDraftsKey() {
+  try {
+    localStorage.removeItem("portal_exam_drafts_v1");
+  } catch {
+    /* ignore */
+  }
+}
+
 export async function loadPortalBundle() {
+  migrateLocalExamDraftsKey();
   if (!bundlePromise) {
-    const url = `${dataBasePath()}/portal.json`;
+    const url = `${dataBasePath()}/portal.json?v=91`;
     bundlePromise = fetch(url, { cache: "no-cache" })
       .then((res) => {
         if (!res.ok) throw new Error("portal_data_load_failed");
