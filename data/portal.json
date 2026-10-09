@@ -16,7 +16,7 @@
   "submissions_reset_generation": 3,
   "submissions_retention_hours": 24,
   "submissions_upload": {
-    "enabled": false,
+    "enabled": true,
     "github_token": "REPLACE_WITH_GITHUB_TOKEN"
   },
   "cleared_student_ids": [419],

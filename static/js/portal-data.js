@@ -27,7 +27,7 @@ function migrateLocalExamDraftsKey() {
 export async function loadPortalBundle() {
   migrateLocalExamDraftsKey();
   if (!bundlePromise) {
-    const url = `${dataBasePath()}/portal.json?v=97`;
+    const url = `${dataBasePath()}/portal.json?v=98`;
     bundlePromise = fetch(url, { cache: "no-cache" })
       .then((res) => {
         if (!res.ok) throw new Error("portal_data_load_failed");

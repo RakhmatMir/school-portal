@@ -2669,6 +2669,7 @@ function bindTeacherExamEditor(main, examId, examMeta, initialQuestions, editorM
 }
 
 async function renderAdminExamDetail(main) {
+  const retentionBanner = await renderSubmissionsRetentionBanner();
   const examId = portalState.examId;
   const data = await api(`/api/portal/exams/${examId}/admin`);
   const preview = previewFromAdminPayload(data);
@@ -2791,6 +2792,7 @@ async function renderAdminExamDetail(main) {
     : "";
 
   main.innerHTML = `
+    ${retentionBanner}
     <button type="button" class="btn-ghost btn-back" id="btn-back-tests">← К контрольным</button>
     <div class="panel panel-exam-head">
       <h3 class="class-detail-title">${escapeHtml(ex.title)}</h3>
