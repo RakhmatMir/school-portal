@@ -1511,6 +1511,11 @@ async function submitStudentExam(examId, questionCount) {
   }
   setTestTakingActive(false);
   portalState.highlightResultExamId = examId;
+  if (useSiteData()) {
+    autoSyncSubmissionsOnLoad({ force: true }).catch((err) => {
+      console.warn("[portal] GitHub sync after submit:", err?.message || err);
+    });
+  }
   return result;
 }
 
