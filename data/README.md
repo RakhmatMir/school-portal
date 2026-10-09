@@ -53,16 +53,17 @@
 
 ### Автовыгрузка сдач в GitHub (ученики)
 
-**Вариант A — токен в `portal.json`** (удобно для класса, токен виден в репозитории — только для демо):
+**Вариант A — секрет `PORTAL_UPLOAD_TOKEN` в GitHub Actions** (рекомендуется):
+
+1. Fine-grained PAT: репозиторий `school-portal`, **Contents: Read and write**.
+2. В настройках репозитория → **Secrets and variables → Actions** → `PORTAL_UPLOAD_TOKEN` = PAT.
+3. После push/deploy workflow подставит токен в `portal.json` на Pages (в git токена нет).
+
+**Вариант A2 — токен в git** (только демо, GitHub часто отзывает):
 
 ```json
-"submissions_upload": {
-  "enabled": true,
-  "github_token": "ghp_..."
-}
+"submissions_upload": { "enabled": true, "github_token": "ghp_..." }
 ```
-
-После deploy сдача с **любого** устройства сразу уходит в `submissions.json`.
 
 **Вариант B — ссылка с токеном один раз на планшет** (см. ниже).
 

@@ -54,7 +54,7 @@ export async function loadPortalBundle(options = {}) {
   migrateLocalExamDraftsKey();
   if (options.fresh) invalidatePortalBundleCache();
   if (!bundlePromise) {
-    const url = `${dataBasePath()}/portal.json?v=105`;
+    const url = `${dataBasePath()}/portal.json?v=106`;
     bundlePromise = fetch(url, { cache: "no-cache" })
       .then((res) => {
         if (!res.ok) throw new Error("portal_data_load_failed");

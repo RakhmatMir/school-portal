@@ -3,7 +3,7 @@ import {
   demoAuthApi,
   invalidateRemoteSubmissionsCache,
   loadPortalBundle,
-} from "./portal-data.js?v=105";
+} from "./portal-data.js?v=106";
 import {
   autoSyncSubmissionsOnLoad,
   copyLocalSubmissionsToClipboard,
@@ -86,6 +86,7 @@ const portalState = {
   examQuestionTimes: {},
   examTimerId: null,
   highlightResultExamId: null,
+  githubSyncWarning: false,
   examExitIntents: {},
   openExamAsReview: false,
   studentExamReturnHome: false,
@@ -1583,8 +1584,10 @@ async function submitStudentExam(examId, questionCount) {
   if (useSiteData()) {
     try {
       const bundle = await loadPortalBundle({ fresh: true });
-      await syncStudentSubmissionsToGithub(bundle);
+      const sync = await syncStudentSubmissionsToGithub(bundle);
+      portalState.githubSyncWarning = Boolean(sync?.skipped);
     } catch (err) {
+      portalState.githubSyncWarning = true;
       console.warn("[portal] GitHub sync after submit:", err?.message || err);
     }
   }
@@ -3039,10 +3042,15 @@ async function renderStudentFlow() {
     }
     const bundleBlock = renderStudentExamBundlePanel(bundle);
     const resultsBlock = renderStudentCompletedTestsBlock(completedTests, highlightId, overallScore);
+    const syncNote = portalState.githubSyncWarning
+      ? `<p class="muted portal-sync-note" role="status">Результат сохранён на этом устройстве. Если учитель не видит сдачу — обновите страницу или откройте ссылку класса ещё раз.</p>`
+      : "";
+    if (portalState.githubSyncWarning) portalState.githubSyncWarning = false;
     main.innerHTML = `
       <div class="panel">
         <h3>${escapeHtml(u.full_name)}</h3>
         <p class="lead">${escapeHtml(session.school_name)} · класс ${escapeHtml(data.class_name)}</p>
+        ${syncNote}
       </div>
       ${bundleBlock}
       ${resultsBlock}
