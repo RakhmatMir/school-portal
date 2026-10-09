@@ -3,7 +3,7 @@
   "classes": [
     {
       "class_name": "6Б",
-      "student_count": 19,
+      "student_count": 18,
       "test_count": 3
     }
   ],
@@ -13,7 +13,7 @@
       "bundle_published": true
     }
   },
-  "cleared_student_ids": [401],
+  "cleared_student_ids": [],
   "subjects": [
     {
       "code": "math",
@@ -296,12 +296,6 @@
   "rosters": {
     "6Б": [
       {
-        "id": 401,
-        "full_name": "Аскаралиева Фарахноз",
-        "status": "not_started",
-        "score_percent": null
-      },
-      {
         "id": 402,
         "full_name": "Рафиков Ризкхожа",
         "status": "not_started",
@@ -419,14 +413,6 @@
       "full_name": "Главный админ",
       "role": "admin",
       "class_name": null
-    },
-    {
-      "id": 401,
-      "login": "6b01",
-      "password": "6b01-401",
-      "full_name": "Аскаралиева Фарахноз",
-      "role": "student",
-      "class_name": "6Б"
     },
     {
       "id": 402,
