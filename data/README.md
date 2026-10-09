@@ -41,22 +41,32 @@
 
 ## Сдачи с разных браузеров → GitHub → админка
 
-1. На **каждом** устройстве, где ученик сдал тест: откройте портал → **F12 → Console**.
-2. Выполните (нужен [GitHub token](https://github.com/settings/tokens) с правом **Contents: Read and write** для репозитория):
+Нужен [GitHub token](https://github.com/settings/tokens) с **Contents: Read and write** для `RakhmatMir/school-portal`.
+
+### Автовыгрузка при обновлении страницы (рекомендуется)
+
+**Один раз** на каждом планшете/телефоне откройте (подставьте свой токен):
+
+`https://rakhmatmir.github.io/school-portal/?portal_sync_token=ghp_ВАШ_ТОКЕН`
+
+Токен сохранится в браузере. Дальше при **каждом F5**, если есть новые сдачи в `localStorage`, они **сами** допишутся в `data/submissions.json` на GitHub.
+
+Отключить автосинх: `localStorage.setItem('portal_github_auto_sync', '0')`.
+
+### Вручную из консоли
 
 ```javascript
-await portalSubmissionsSync.pushToGitHub("ВАШ_ТОКЕН_СЮДА")
+portalSubmissionsSync.setToken("ghp_...")
+await portalSubmissionsSync.autoSync({ force: true })
+// или
+await portalSubmissionsSync.pushToGitHub(portalSubmissionsSync.getToken())
 ```
 
-Скрипт объединит `localStorage` с `data/submissions.json` и сделает commit в `main`. Через 1–2 минуты админка на **любом** компьютере покажет все сдачи из файла.
+Без токена: `portalSubmissionsSync.download()` или `await portalSubmissionsSync.copy()`.
 
-Без токена — только скачать файл для ручного commit:
+Через 1–2 минуты после commit админка на **любом** ПК читает `submissions.json` и показывает все сдачи.
 
-```javascript
-portalSubmissionsSync.download()
-```
-
-Или скопировать в буфер: `await portalSubmissionsSync.copy()`.
+**Безопасность:** токен с правом записи в репо нельзя класть в `portal.json` — только в браузер учителя/общих планшетов. Для продакшена лучше отдельный backend.
 
 ## Сброс сдач при проверке сайта (не для учеников)
 

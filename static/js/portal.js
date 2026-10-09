@@ -1,11 +1,15 @@
 import { dataApi, demoAuthApi } from "./portal-data.js?v=93";
 import {
+  autoSyncSubmissionsOnLoad,
   copyLocalSubmissionsToClipboard,
   downloadSubmissionsJson,
+  getGitHubSyncToken,
   mergeSubmissionMaps,
   pushSubmissionsToGitHub,
   readLocalSubmissionMap,
-} from "./portal-submissions-sync.js?v=1";
+  saveGitHubSyncTokenFromUrl,
+  setGitHubSyncToken,
+} from "./portal-submissions-sync.js?v=2";
 
 const $ = (id) => document.getElementById(id);
 
@@ -3161,11 +3165,16 @@ $("student-confirm-backdrop")?.addEventListener("click", () => closeStudentConfi
 syncThemeIcons();
 
 initScrollTopButton();
+if (useSiteData()) {
+  saveGitHubSyncTokenFromUrl();
+}
 maybeDevClearSubmissionsFromUrl();
 if (useSiteData()) {
   window.portalSubmissionsSync = {
     readLocal: readLocalSubmissionMap,
     merge: mergeSubmissionMaps,
+    getToken: getGitHubSyncToken,
+    setToken: setGitHubSyncToken,
     async copy() {
       return copyLocalSubmissionsToClipboard();
     },
@@ -3175,7 +3184,18 @@ if (useSiteData()) {
     pushToGitHub(token, opts) {
       return pushSubmissionsToGitHub(token, opts);
     },
+    autoSync: autoSyncSubmissionsOnLoad,
   };
 }
 await loadLanding();
+if (useSiteData()) {
+  autoSyncSubmissionsOnLoad().then((r) => {
+    if (r?.synced) console.info("[portal] Сдачи отправлены в GitHub", r);
+    else if (r?.skipped === "no_token") {
+      /* токен не настроен — автосинх выключен */
+    } else if (r && !r.skipped) console.info("[portal] sync", r);
+  }).catch((err) => {
+    console.warn("[portal] Не удалось отправить сдачи в GitHub:", err?.message || err);
+  });
+}
 await tryRestoreSession();

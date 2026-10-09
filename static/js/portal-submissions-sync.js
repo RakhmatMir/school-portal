@@ -8,6 +8,9 @@ export const PORTAL_GITHUB_SUBMISSIONS = {
 };
 
 const LOCAL_KEY = "portal_site_submissions_v1";
+const SYNC_TOKEN_KEY = "portal_github_sync_token";
+const SYNC_FP_KEY = "portal_submissions_sync_fingerprint";
+const AUTO_SYNC_KEY = "portal_github_auto_sync";
 
 export function readLocalSubmissionMap() {
   try {
@@ -17,6 +20,58 @@ export function readLocalSubmissionMap() {
   } catch {
     return {};
   }
+}
+
+export function getGitHubSyncToken() {
+  try {
+    return localStorage.getItem(SYNC_TOKEN_KEY) || "";
+  } catch {
+    return "";
+  }
+}
+
+export function setGitHubSyncToken(token) {
+  if (!token) {
+    localStorage.removeItem(SYNC_TOKEN_KEY);
+    return;
+  }
+  localStorage.setItem(SYNC_TOKEN_KEY, String(token).trim());
+  if (localStorage.getItem(AUTO_SYNC_KEY) == null) {
+    localStorage.setItem(AUTO_SYNC_KEY, "1");
+  }
+}
+
+/** Один раз открыть ссылку с ?portal_sync_token=ghp_... — токен сохранится, параметр исчезнет из адреса. */
+export function saveGitHubSyncTokenFromUrl() {
+  const params = new URLSearchParams(location.search);
+  const token = params.get("portal_sync_token");
+  if (!token) return false;
+  setGitHubSyncToken(token);
+  params.delete("portal_sync_token");
+  const qs = params.toString();
+  const next = `${location.pathname}${qs ? `?${qs}` : ""}${location.hash}`;
+  history.replaceState(null, "", next);
+  return true;
+}
+
+export function isAutoSyncEnabled() {
+  try {
+    return localStorage.getItem(AUTO_SYNC_KEY) !== "0";
+  } catch {
+    return true;
+  }
+}
+
+export function localSubmissionsFingerprint(map = readLocalSubmissionMap()) {
+  const keys = Object.keys(map).sort();
+  if (!keys.length) return "";
+  let h = keys.length;
+  for (const k of keys) {
+    const s = map[k]?.score_percent;
+    h = (h * 31 + k.length) | 0;
+    if (s != null) h = (h * 17 + Number(s)) | 0;
+  }
+  return `${keys.join(",")}#${h}`;
 }
 
 export function mergeSubmissionMaps(...maps) {
@@ -36,6 +91,10 @@ function apiHeaders(token) {
     Authorization: `Bearer ${token}`,
     "X-GitHub-Api-Version": "2022-11-28",
   };
+}
+
+function encodeFileContent(text) {
+  return btoa(unescape(encodeURIComponent(text)));
 }
 
 /** Скачать JSON для ручного commit (без токена). */
@@ -82,12 +141,7 @@ export async function fetchGitHubSubmissionFile(cfg = PORTAL_GITHUB_SUBMISSIONS)
   };
 }
 
-/**
- * Объединить localStorage с GitHub и записать в репозиторий.
- * @param {string} token — classic PAT или fine-grained с Contents: Read and write
- * @param {{ mergeRemote?: boolean, downloadOnly?: boolean }} opts
- */
-export async function pushSubmissionsToGitHub(token, opts = {}) {
+async function pushSubmissionsToGitHubOnce(token, opts = {}) {
   const cfg = { ...PORTAL_GITHUB_SUBMISSIONS, ...opts.cfg };
   const mergeRemote = opts.mergeRemote !== false;
   const local = readLocalSubmissionMap();
@@ -122,10 +176,10 @@ export async function pushSubmissionsToGitHub(token, opts = {}) {
     throw new Error("token_required");
   }
 
-  const content = btoa(unescape(encodeURIComponent(JSON.stringify(payload, null, 2))));
+  const content = encodeFileContent(JSON.stringify(payload, null, 2));
   const putUrl = `https://api.github.com/repos/${cfg.owner}/${cfg.repo}/contents/${cfg.path}`;
   const body = {
-    message: `Sync exam submissions (${Object.keys(merged).length} entries)`,
+    message: opts.commitMessage || `Sync exam submissions (${Object.keys(merged).length} entries)`,
     content,
     branch: cfg.branch,
   };
@@ -138,7 +192,8 @@ export async function pushSubmissionsToGitHub(token, opts = {}) {
   });
   if (!res.ok) {
     const err = await res.text();
-    throw new Error(`github_put_failed: ${res.status} ${err}`);
+    const conflict = res.status === 409;
+    throw Object.assign(new Error(`github_put_failed: ${res.status} ${err}`), { conflict });
   }
   const result = await res.json();
   return {
@@ -147,6 +202,45 @@ export async function pushSubmissionsToGitHub(token, opts = {}) {
     mergedCount: Object.keys(merged).length,
     commit: result.commit?.html_url || null,
   };
+}
+
+/**
+ * Объединить localStorage с GitHub и записать в репозиторий.
+ * @param {string} token — classic PAT или fine-grained с Contents: Read and write
+ */
+export async function pushSubmissionsToGitHub(token, opts = {}) {
+  const attempts = Math.max(1, Number(opts.maxAttempts) || 3);
+  let lastErr;
+  for (let i = 0; i < attempts; i++) {
+    try {
+      return await pushSubmissionsToGitHubOnce(token, opts);
+    } catch (err) {
+      lastErr = err;
+      if (err?.conflict && i < attempts - 1) continue;
+      throw err;
+    }
+  }
+  throw lastErr;
+}
+
+/** При загрузке страницы: если есть токен и локальные сдачи — отправить в GitHub. */
+export async function autoSyncSubmissionsOnLoad(opts = {}) {
+  if (!isAutoSyncEnabled()) return { skipped: "auto_off" };
+  const token = getGitHubSyncToken();
+  if (!token) return { skipped: "no_token" };
+
+  const local = readLocalSubmissionMap();
+  const fp = localSubmissionsFingerprint(local);
+  if (!fp) return { skipped: "local_empty" };
+
+  const lastFp = localStorage.getItem(SYNC_FP_KEY) || "";
+  if (fp === lastFp && !opts.force) return { skipped: "already_synced" };
+
+  const result = await pushSubmissionsToGitHub(token, {
+    commitMessage: opts.commitMessage || "Auto-sync exam submissions on page load",
+  });
+  localStorage.setItem(SYNC_FP_KEY, fp);
+  return { synced: true, ...result };
 }
 
 /** Скопировать localStorage в буфер (для отправки учителю). */
