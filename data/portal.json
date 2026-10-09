@@ -14,6 +14,7 @@
     }
   },
   "submissions_reset_generation": 3,
+  "submissions_retention_hours": 24,
   "submissions_upload": {
     "enabled": false,
     "github_token": "REPLACE_WITH_GITHUB_TOKEN"

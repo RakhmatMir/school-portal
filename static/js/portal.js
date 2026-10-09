@@ -3,7 +3,7 @@ import {
   demoAuthApi,
   invalidateRemoteSubmissionsCache,
   loadPortalBundle,
-} from "./portal-data.js?v=96";
+} from "./portal-data.js?v=97";
 import {
   autoSyncSubmissionsOnLoad,
   copyLocalSubmissionsToClipboard,
@@ -14,7 +14,8 @@ import {
   readLocalSubmissionMap,
   saveGitHubSyncTokenFromUrl,
   setGitHubSyncToken,
-} from "./portal-submissions-sync.js?v=3";
+  fetchSiteSubmissionsDocument,
+} from "./portal-submissions-sync.js?v=4";
 
 const ADMIN_SUBMISSION_POLL_MS = 4000;
 let adminSubmissionPollTimer = null;
@@ -2083,7 +2084,28 @@ async function loadStaffTestsList() {
   }
 }
 
+function formatDateTimeRu(iso) {
+  try {
+    return new Date(iso).toLocaleString("ru-RU", { dateStyle: "short", timeStyle: "short" });
+  } catch {
+    return String(iso || "");
+  }
+}
+
+async function renderSubmissionsRetentionBanner() {
+  if (!useSiteData() || !isStaffRole()) return "";
+  const doc = await fetchSiteSubmissionsDocument();
+  const meta = doc?.meta;
+  if (!meta?.all_submitted_at || !meta?.purge_after) return "";
+  const n = meta.student_count ?? "—";
+  return `<section class="panel panel-muted-inline panel-submissions-retention">
+    <p class="lead"><strong>Все ${escapeHtml(String(n))} учеников сдали все тесты.</strong> Данные в GitHub хранятся до <strong>${escapeHtml(formatDateTimeRu(meta.purge_after))}</strong>, затем удаляются автоматически (≈24 ч на проверку).</p>
+    <p class="muted">Сдано: ${escapeHtml(formatDateTimeRu(meta.all_submitted_at))}</p>
+  </section>`;
+}
+
 async function renderAdminHome(main, session) {
+  const retentionBanner = await renderSubmissionsRetentionBanner();
   const classes = await api("/api/portal/classes");
   const staffTests = isStaffRole() ? await loadStaffTestsList() : [];
   const rows = classes.length
@@ -2112,6 +2134,7 @@ async function renderAdminHome(main, session) {
     </div>`
     : "";
   main.innerHTML = `
+    ${retentionBanner}
     ${renderNotifyRecipientsPanel()}
     <div class="panel">
       <h3>Классы</h3>

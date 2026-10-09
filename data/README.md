@@ -43,6 +43,12 @@
 
 Нужен [GitHub token](https://github.com/settings/tokens) с **Contents: Read and write** для `RakhmatMir/school-portal`.
 
+### Хранение 24 часа и автоудаление
+
+Когда **все 18** учеников сдали **все 3 теста**, в `submissions.json` появляется `meta.purge_after` (+24 ч от `portal.json` → `submissions_retention_hours`).
+
+До этого момента админ проверяет результаты. После `purge_after` workflow **Purge expired submissions** (каждый час) очищает файл.
+
 ### Онлайн для админа
 
 Пока открыта админка, сайт каждые **4 секунды** заново читает `submissions.json` с GitHub — галочки «сдал» обновляются без F5.

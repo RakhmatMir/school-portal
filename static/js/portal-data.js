@@ -27,7 +27,7 @@ function migrateLocalExamDraftsKey() {
 export async function loadPortalBundle() {
   migrateLocalExamDraftsKey();
   if (!bundlePromise) {
-    const url = `${dataBasePath()}/portal.json?v=96`;
+    const url = `${dataBasePath()}/portal.json?v=97`;
     bundlePromise = fetch(url, { cache: "no-cache" })
       .then((res) => {
         if (!res.ok) throw new Error("portal_data_load_failed");
@@ -66,7 +66,7 @@ async function loadMergedSubmissions() {
   forceRemoteSubmissionsFetch = false;
   try {
     const ts = bust ? `&_=${Date.now()}` : "";
-    const url = `${dataBasePath()}/submissions.json?v=4${ts}`;
+    const url = `${dataBasePath()}/submissions.json?v=5${ts}`;
     const res = await fetch(url, { cache: "no-store" });
     if (res.ok) {
       const body = await res.json();
@@ -213,6 +213,19 @@ function classExamBundleList(bundle, className) {
   return bundle.exams
     .filter((e) => e.class_name === className)
     .sort((a, b) => (order[a.subject_code] ?? 99) - (order[b.subject_code] ?? 99));
+}
+
+/** Все ученики roster сдали все тесты набора класса (например 18 × 3). */
+export function classBundleFullySubmitted(bundle, className, submissions) {
+  const roster = bundle?.rosters?.[className] || [];
+  const exams = classExamBundleList(bundle, className);
+  if (!roster.length || !exams.length) return false;
+  for (const row of roster) {
+    for (const ex of exams) {
+      if (!getSubmission(submissions, ex.id, row.id)) return false;
+    }
+  }
+  return true;
 }
 
 function getClassExamSchedule(className, bundle) {

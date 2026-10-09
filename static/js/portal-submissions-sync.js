@@ -138,7 +138,46 @@ export async function fetchGitHubSubmissionFile(cfg = PORTAL_GITHUB_SUBMISSIONS)
     sha: data.sha || null,
     submissions: submissions && typeof submissions === "object" ? submissions : {},
     updated_at: body.updated_at || null,
+    meta: body.meta && typeof body.meta === "object" ? body.meta : null,
+    raw: body,
   };
+}
+
+async function buildSubmissionFilePayload(bundle, merged, remoteBody) {
+  const retentionHours = Math.max(1, Number(bundle?.submissions_retention_hours) || 24);
+  const meta =
+    remoteBody?.meta && typeof remoteBody.meta === "object" ? { ...remoteBody.meta } : {};
+
+  if (!meta.purge_after && bundle) {
+    const { classBundleFullySubmitted } = await import("./portal-data.js");
+    const className = bundle.classes?.[0]?.class_name || "6Б";
+    if (classBundleFullySubmitted(bundle, className, merged)) {
+      const now = new Date();
+      meta.all_submitted_at = now.toISOString();
+      meta.purge_after = new Date(now.getTime() + retentionHours * 3600000).toISOString();
+      meta.class_name = className;
+      meta.student_count = (bundle.rosters?.[className] || []).length;
+    }
+  }
+
+  const payload = {
+    updated_at: new Date().toISOString(),
+    submissions: merged,
+  };
+  if (Object.keys(meta).length) payload.meta = meta;
+  return payload;
+}
+
+/** Прочитать submissions.json с сайта (админ: баннер хранения). */
+export async function fetchSiteSubmissionsDocument() {
+  const base = String(window.PORTAL_DATA_BASE || "data").replace(/\/$/, "");
+  try {
+    const res = await fetch(`${base}/submissions.json?v=5&_=${Date.now()}`, { cache: "no-store" });
+    if (!res.ok) return null;
+    return await res.json();
+  } catch {
+    return null;
+  }
 }
 
 async function pushSubmissionsToGitHubOnce(token, opts = {}) {
@@ -151,16 +190,22 @@ async function pushSubmissionsToGitHubOnce(token, opts = {}) {
     throw new Error("local_empty");
   }
 
-  let remote = { sha: null, submissions: {} };
+  let remote = { sha: null, submissions: {}, meta: null, raw: {} };
   if (mergeRemote) {
     remote = await fetchGitHubSubmissionFile(cfg);
   }
 
   const merged = mergeSubmissionMaps(remote.submissions, local);
-  const payload = {
-    updated_at: new Date().toISOString(),
-    submissions: merged,
-  };
+  let bundle = opts.bundle || null;
+  if (!bundle) {
+    try {
+      const mod = await import("./portal-data.js");
+      bundle = await mod.loadPortalBundle();
+    } catch {
+      bundle = null;
+    }
+  }
+  const payload = await buildSubmissionFilePayload(bundle, merged, remote.raw || { meta: remote.meta });
 
   if (opts.downloadOnly) {
     downloadSubmissionsJson(merged);
@@ -262,6 +307,7 @@ export async function autoSyncSubmissionsOnLoad(opts = {}) {
 
   const result = await pushSubmissionsToGitHub(token, {
     commitMessage: opts.commitMessage || "Auto-sync exam submissions on page load",
+    bundle: opts.bundle,
   });
   localStorage.setItem(SYNC_FP_KEY, fp);
   return { synced: true, ...result };

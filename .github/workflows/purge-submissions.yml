@@ -1,0 +1,26 @@
+name: Purge expired submissions
+
+on:
+  schedule:
+    - cron: "15 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  purge:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Purge submissions.json if retention elapsed
+        id: purge
+        run: node scripts/purge-submissions-if-expired.mjs
+      - name: Commit purge
+        if: steps.purge.outputs.changed == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/submissions.json
+          git commit -m "chore: auto-purge exam submissions after 24h retention"
+          git push
