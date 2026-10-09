@@ -16,6 +16,28 @@ function dataBasePath() {
   return String(window.PORTAL_DATA_BASE || "data").replace(/\/$/, "");
 }
 
+/** Актуальный файл в репо (API-пуш виден сразу; Pages CDN отстаёт). */
+const SUBMISSIONS_GITHUB_RAW =
+  "https://raw.githubusercontent.com/RakhmatMir/school-portal/main/data/submissions.json";
+
+function parseSubmissionsFromJsonBody(body) {
+  if (body?.submissions && typeof body.submissions === "object") {
+    return body.submissions;
+  }
+  if (body && typeof body === "object" && !Array.isArray(body)) {
+    return body;
+  }
+  return {};
+}
+
+function liveSubmissionsFetchUrls(bust) {
+  const t = bust ? Date.now() : 8;
+  // raw main — сразу после GitHub API PUT; Pages CDN часто отстаёт на часы
+  const urls = [`${SUBMISSIONS_GITHUB_RAW}?t=${t}`];
+  urls.push(`${dataBasePath()}/submissions.json?v=9${bust ? `&_=${t}` : ""}`);
+  return urls;
+}
+
 function migrateLocalExamDraftsKey() {
   try {
     localStorage.removeItem("portal_exam_drafts_v1");
@@ -24,10 +46,15 @@ function migrateLocalExamDraftsKey() {
   }
 }
 
-export async function loadPortalBundle() {
+export function invalidatePortalBundleCache() {
+  bundlePromise = null;
+}
+
+export async function loadPortalBundle(options = {}) {
   migrateLocalExamDraftsKey();
+  if (options.fresh) invalidatePortalBundleCache();
   if (!bundlePromise) {
-    const url = `${dataBasePath()}/portal.json?v=103`;
+    const url = `${dataBasePath()}/portal.json?v=105`;
     bundlePromise = fetch(url, { cache: "no-cache" })
       .then((res) => {
         if (!res.ok) throw new Error("portal_data_load_failed");
@@ -59,25 +86,33 @@ export function invalidateRemoteSubmissionsCache() {
 }
 
 async function fetchRemoteSubmissionsMap() {
-  let remote = {};
   const bust = forceRemoteSubmissionsFetch;
   forceRemoteSubmissionsFetch = false;
-  try {
-    const ts = bust ? `&_=${Date.now()}` : "";
-    const url = `${dataBasePath()}/submissions.json?v=7${ts}`;
-    const res = await fetch(url, { cache: "no-store" });
-    if (res.ok) {
+  for (const url of liveSubmissionsFetchUrls(bust)) {
+    try {
+      const res = await fetch(url, { cache: "no-store" });
+      if (!res.ok) continue;
       const body = await res.json();
-      if (body?.submissions && typeof body.submissions === "object") {
-        remote = body.submissions;
-      } else if (body && typeof body === "object" && !Array.isArray(body)) {
-        remote = body;
-      }
+      return parseSubmissionsFromJsonBody(body);
+    } catch {
+      /* try next url */
     }
-  } catch {
-    /* offline or missing file */
   }
-  return remote;
+  return {};
+}
+
+/** Полный submissions.json (meta + submissions) с GitHub raw или Pages. */
+export async function fetchLiveSubmissionsDocument() {
+  for (const url of liveSubmissionsFetchUrls(true)) {
+    try {
+      const res = await fetch(url, { cache: "no-store" });
+      if (!res.ok) continue;
+      return await res.json();
+    } catch {
+      /* try next */
+    }
+  }
+  return null;
 }
 
 /** Ученик: local + GitHub. Админ: только GitHub JSON (любой компьютер). */

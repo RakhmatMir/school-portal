@@ -3,7 +3,7 @@ import {
   demoAuthApi,
   invalidateRemoteSubmissionsCache,
   loadPortalBundle,
-} from "./portal-data.js?v=103";
+} from "./portal-data.js?v=105";
 import {
   autoSyncSubmissionsOnLoad,
   copyLocalSubmissionsToClipboard,
@@ -15,7 +15,8 @@ import {
   saveGitHubSyncTokenFromUrl,
   setGitHubSyncToken,
   fetchSiteSubmissionsDocument,
-} from "./portal-submissions-sync.js?v=5";
+  syncStudentSubmissionsToGithub,
+} from "./portal-submissions-sync.js?v=7";
 
 const ADMIN_SUBMISSION_POLL_MS = 4000;
 let adminSubmissionPollTimer = null;
@@ -1580,11 +1581,12 @@ async function submitStudentExam(examId, questionCount) {
   setTestTakingActive(false);
   portalState.highlightResultExamId = examId;
   if (useSiteData()) {
-    loadPortalBundle()
-      .then((bundle) => autoSyncSubmissionsOnLoad({ force: true, bundle }))
-      .catch((err) => {
-        console.warn("[portal] GitHub sync after submit:", err?.message || err);
-      });
+    try {
+      const bundle = await loadPortalBundle({ fresh: true });
+      await syncStudentSubmissionsToGithub(bundle);
+    } catch (err) {
+      console.warn("[portal] GitHub sync after submit:", err?.message || err);
+    }
   }
   return result;
 }

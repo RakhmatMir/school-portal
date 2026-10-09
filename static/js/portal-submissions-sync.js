@@ -94,7 +94,10 @@ function apiHeaders(token) {
 }
 
 function encodeFileContent(text) {
-  return btoa(unescape(encodeURIComponent(text)));
+  const bytes = new TextEncoder().encode(text);
+  let binary = "";
+  for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
+  return btoa(binary);
 }
 
 /** Скачать JSON для ручного commit (без токена). */
@@ -166,16 +169,50 @@ async function buildSubmissionFilePayload(bundle, merged, remoteBody) {
   return payload;
 }
 
-/** Прочитать submissions.json с сайта (админ: баннер хранения). */
+/** Прочитать submissions.json (актуальная ветка main, не кэш Pages). */
 export async function fetchSiteSubmissionsDocument() {
-  const base = String(window.PORTAL_DATA_BASE || "data").replace(/\/$/, "");
   try {
-    const res = await fetch(`${base}/submissions.json?v=5&_=${Date.now()}`, { cache: "no-store" });
-    if (!res.ok) return null;
-    return await res.json();
+    const mod = await import("./portal-data.js");
+    return mod.fetchLiveSubmissionsDocument();
   } catch {
     return null;
   }
+}
+
+/** После сдачи ученика — несколько попыток отправить в GitHub. */
+export async function syncStudentSubmissionsToGithub(bundle, { attempts = 4 } = {}) {
+  let lastErr;
+  for (let i = 0; i < attempts; i++) {
+    try {
+      let b = bundle;
+      if (!b || i > 0) {
+        const mod = await import("./portal-data.js");
+        b = await mod.loadPortalBundle({ fresh: i > 0 });
+      }
+      const result = await autoSyncSubmissionsOnLoad({
+        force: true,
+        bundle: b,
+        maxAttempts: 5,
+        commitMessage: "Student exam submission sync",
+      });
+      if (result?.skipped === "no_token") {
+        throw new Error("no_token");
+      }
+      if (result?.skipped && result.skipped !== "already_synced") {
+        throw new Error(String(result.skipped));
+      }
+      return result;
+    } catch (err) {
+      lastErr = err;
+      try {
+        localStorage.removeItem(SYNC_FP_KEY);
+      } catch {
+        /* ignore */
+      }
+      await new Promise((r) => setTimeout(r, 800 * (i + 1)));
+    }
+  }
+  throw lastErr;
 }
 
 async function pushSubmissionsToGitHubOnce(token, opts = {}) {
