@@ -27,7 +27,7 @@ function migrateLocalExamDraftsKey() {
 export async function loadPortalBundle() {
   migrateLocalExamDraftsKey();
   if (!bundlePromise) {
-    const url = `${dataBasePath()}/portal.json?v=94`;
+    const url = `${dataBasePath()}/portal.json?v=95`;
     bundlePromise = fetch(url, { cache: "no-cache" })
       .then((res) => {
         if (!res.ok) throw new Error("portal_data_load_failed");
@@ -56,7 +56,7 @@ async function loadMergedSubmissions() {
   const local = loadSubmissions();
   let remote = {};
   try {
-    const url = `${dataBasePath()}/submissions.json?v=2`;
+    const url = `${dataBasePath()}/submissions.json?v=3`;
     const res = await fetch(url, { cache: "no-cache" });
     if (res.ok) {
       const body = await res.json();

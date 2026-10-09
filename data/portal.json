@@ -13,7 +13,7 @@
       "bundle_published": true
     }
   },
-  "submissions_reset_generation": 1,
+  "submissions_reset_generation": 2,
   "cleared_student_ids": [],
   "subjects": [
     {
@@ -297,8 +297,8 @@
   "rosters": {
     "6Б": [
       {
-        "id": 402,
-        "full_name": "Рафиков Ризкхожа",
+        "id": 401,
+        "full_name": "Аскаралиева Фарахноз",
         "status": "not_started",
         "score_percent": null
       },
@@ -416,10 +416,10 @@
       "class_name": null
     },
     {
-      "id": 402,
-      "login": "6b02",
-      "password": "6b02-402",
-      "full_name": "Рафиков Ризкхожа",
+      "id": 401,
+      "login": "6b01",
+      "password": "6b01-401",
+      "full_name": "Аскаралиева Фарахноз",
       "role": "student",
       "class_name": "6Б"
     },
