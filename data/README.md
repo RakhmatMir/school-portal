@@ -16,6 +16,7 @@
 | `demo_question_times` | Секунды на каждый вопрос (`exam_id:student_id` → массив), усредняются в аналитике |
 | `demo_question_exit_counts` | Выходы из вкладки на каждом вопросе |
 | `demo_question_away_seconds` | Секунды вне вкладки на каждом вопросе |
+| `submissions.json` | **Общие сдачи** с разных браузеров (см. выгрузку ниже) |
 
 Пока не сдали **все** ученики из `rosters` для класса экзамена, оценки и аналитика скрыты; после последней сдачи результаты открываются сразу у учеников и у учителя.
 
@@ -37,6 +38,25 @@
 ```
 
 Роли: `admin`, `student`.
+
+## Сдачи с разных браузеров → GitHub → админка
+
+1. На **каждом** устройстве, где ученик сдал тест: откройте портал → **F12 → Console**.
+2. Выполните (нужен [GitHub token](https://github.com/settings/tokens) с правом **Contents: Read and write** для репозитория):
+
+```javascript
+await portalSubmissionsSync.pushToGitHub("ВАШ_ТОКЕН_СЮДА")
+```
+
+Скрипт объединит `localStorage` с `data/submissions.json` и сделает commit в `main`. Через 1–2 минуты админка на **любом** компьютере покажет все сдачи из файла.
+
+Без токена — только скачать файл для ручного commit:
+
+```javascript
+portalSubmissionsSync.download()
+```
+
+Или скопировать в буфер: `await portalSubmissionsSync.copy()`.
 
 ## Сброс сдач при проверке сайта (не для учеников)
 

@@ -25,7 +25,7 @@ function migrateLocalExamDraftsKey() {
 export async function loadPortalBundle() {
   migrateLocalExamDraftsKey();
   if (!bundlePromise) {
-    const url = `${dataBasePath()}/portal.json?v=92`;
+    const url = `${dataBasePath()}/portal.json?v=93`;
     bundlePromise = fetch(url, { cache: "no-cache" })
       .then((res) => {
         if (!res.ok) throw new Error("portal_data_load_failed");
@@ -46,6 +46,27 @@ function loadSubmissions() {
   } catch {
     return {};
   }
+}
+
+/** localStorage + data/submissions.json (GitHub); при совпадении ключей побеждает файл с GitHub. */
+async function loadMergedSubmissions() {
+  const local = loadSubmissions();
+  let remote = {};
+  try {
+    const url = `${dataBasePath()}/submissions.json?v=1`;
+    const res = await fetch(url, { cache: "no-cache" });
+    if (res.ok) {
+      const body = await res.json();
+      if (body?.submissions && typeof body.submissions === "object") {
+        remote = body.submissions;
+      } else if (body && typeof body === "object" && !Array.isArray(body)) {
+        remote = body;
+      }
+    }
+  } catch {
+    /* offline or missing file */
+  }
+  return { ...local, ...remote };
 }
 
 function saveSubmissions(map) {
@@ -613,7 +634,7 @@ export async function dataApi(path, options = {}) {
   enforceClearedStudents(bundle);
   const method = String(options.method || "GET").toUpperCase();
   const user = currentUser();
-  const submissions = loadSubmissions();
+  const submissions = await loadMergedSubmissions();
   const teacherReports = loadTeacherReports();
 
   if (path === "/api/public/landing" && method === "GET") {

@@ -1,4 +1,11 @@
-import { dataApi, demoAuthApi } from "./portal-data.js?v=90";
+import { dataApi, demoAuthApi } from "./portal-data.js?v=93";
+import {
+  copyLocalSubmissionsToClipboard,
+  downloadSubmissionsJson,
+  mergeSubmissionMaps,
+  pushSubmissionsToGitHub,
+  readLocalSubmissionMap,
+} from "./portal-submissions-sync.js?v=1";
 
 const $ = (id) => document.getElementById(id);
 
@@ -3155,5 +3162,20 @@ syncThemeIcons();
 
 initScrollTopButton();
 maybeDevClearSubmissionsFromUrl();
+if (useSiteData()) {
+  window.portalSubmissionsSync = {
+    readLocal: readLocalSubmissionMap,
+    merge: mergeSubmissionMaps,
+    async copy() {
+      return copyLocalSubmissionsToClipboard();
+    },
+    download() {
+      return downloadSubmissionsJson(readLocalSubmissionMap());
+    },
+    pushToGitHub(token, opts) {
+      return pushSubmissionsToGitHub(token, opts);
+    },
+  };
+}
 await loadLanding();
 await tryRestoreSession();
