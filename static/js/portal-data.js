@@ -27,7 +27,7 @@ function migrateLocalExamDraftsKey() {
 export async function loadPortalBundle() {
   migrateLocalExamDraftsKey();
   if (!bundlePromise) {
-    const url = `${dataBasePath()}/portal.json?v=99`;
+    const url = `${dataBasePath()}/portal.json?v=101`;
     bundlePromise = fetch(url, { cache: "no-cache" })
       .then((res) => {
         if (!res.ok) throw new Error("portal_data_load_failed");
@@ -714,7 +714,7 @@ export async function dataApi(path, options = {}) {
   enforceClearedStudents(bundle);
   const method = String(options.method || "GET").toUpperCase();
   const user = currentUser();
-  const submissions = await loadMergedSubmissions();
+  const submissions = await loadSubmissionsForApi(user);
   const teacherReports = loadTeacherReports();
 
   if (path === "/api/public/landing" && method === "GET") {

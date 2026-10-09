@@ -3,7 +3,8 @@ import {
   demoAuthApi,
   invalidateRemoteSubmissionsCache,
   loadPortalBundle,
-} from "./portal-data.js?v=99";
+  studentBundleFullySubmitted,
+} from "./portal-data.js?v=101";
 import {
   autoSyncSubmissionsOnLoad,
   copyLocalSubmissionsToClipboard,
@@ -19,31 +20,98 @@ import {
 
 const ADMIN_SUBMISSION_POLL_MS = 4000;
 let adminSubmissionPollTimer = null;
+let adminSyncNoticeTimer = null;
+
+function setAdminJsonLoader(visible) {
+  const el = $("admin-json-loader");
+  if (el) el.hidden = !visible;
+}
+
+function showAdminSyncNotice(message) {
+  const el = $("admin-sync-notice");
+  if (!el) return;
+  el.textContent = message;
+  el.hidden = false;
+  clearTimeout(adminSyncNoticeTimer);
+  adminSyncNoticeTimer = setTimeout(() => {
+    el.hidden = true;
+  }, 6000);
+}
+
+async function countBundleCompleteInSubmissions(submissions, bundle) {
+  const className = bundle?.classes?.[0]?.class_name || "6Б";
+  const roster = bundle?.rosters?.[className] || [];
+  let n = 0;
+  for (const row of roster) {
+    if (studentBundleFullySubmitted(bundle, className, row.id, submissions)) n++;
+  }
+  return n;
+}
+
+/** Читает JSON на GitHub, уведомляет админа о новых сдачах, обновляет галочки. */
+async function adminPollGithubSubmissions() {
+  if (portalState.session?.user?.role !== "admin") return;
+  setAdminJsonLoader(true);
+  try {
+    const doc = await fetchSiteSubmissionsDocument();
+    const subs = doc?.submissions && typeof doc.submissions === "object" ? doc.submissions : {};
+    const entryCount = Object.keys(subs).length;
+    const bundle = await loadPortalBundle();
+    const bundleDone = await countBundleCompleteInSubmissions(subs, bundle);
+    const rosterSize = (bundle?.rosters?.[bundle?.classes?.[0]?.class_name || "6Б"] || []).length;
+
+    const prevEntries = portalState.adminGithubEntryCount;
+    const prevBundle = portalState.adminBundleCompleteCount;
+    const ready = prevEntries != null;
+
+    if (ready && entryCount > prevEntries) {
+      const delta = entryCount - prevEntries;
+      showAdminSyncNotice(
+        delta === 1
+          ? "Новая сдача в JSON — обновляем таблицу…"
+          : `Новые сдачи в JSON (+${delta}) — обновляем таблицу…`
+      );
+    }
+    if (ready && bundleDone > prevBundle) {
+      showAdminSyncNotice(
+        `✓ ${bundleDone} из ${rosterSize} сдали все 3 теста (данные из GitHub)`
+      );
+    }
+
+    portalState.adminGithubEntryCount = entryCount;
+    portalState.adminBundleCompleteCount = bundleDone;
+
+    invalidateRemoteSubmissionsCache();
+    portalState.adminPollSilent = true;
+    await renderAdminFlow();
+  } catch (err) {
+    console.warn("[portal] admin GitHub poll", err);
+  } finally {
+    portalState.adminPollSilent = false;
+    setAdminJsonLoader(false);
+  }
+}
 
 function stopAdminSubmissionPoll() {
   if (adminSubmissionPollTimer) {
     clearInterval(adminSubmissionPollTimer);
     adminSubmissionPollTimer = null;
   }
+  setAdminJsonLoader(false);
 }
 
 function startAdminSubmissionPoll() {
   stopAdminSubmissionPoll();
   if (!useSiteData()) return;
-  adminSubmissionPollTimer = setInterval(async () => {
+  portalState.adminGithubEntryCount = null;
+  portalState.adminBundleCompleteCount = null;
+  void adminPollGithubSubmissions();
+  adminSubmissionPollTimer = setInterval(() => {
     if (portalState.session?.user?.role !== "admin") {
       stopAdminSubmissionPoll();
       return;
     }
-    invalidateRemoteSubmissionsCache();
-    portalState.adminPollSilent = true;
-    try {
-      await renderAdminFlow();
-    } catch (err) {
-      console.warn("[portal] admin submission poll", err);
-    } finally {
-      portalState.adminPollSilent = false;
-    }
+    void adminPollGithubSubmissions();
   }, ADMIN_SUBMISSION_POLL_MS);
 }
 
@@ -2170,6 +2238,7 @@ async function renderAdminHome(main, session) {
     : "";
   main.innerHTML = `
     ${retentionBanner}
+    ${syncHint}
     ${renderNotifyRecipientsPanel()}
     <div class="panel">
       <h3>Классы</h3>
