@@ -68,6 +68,10 @@ await portalSubmissionsSync.pushToGitHub(portalSubmissionsSync.getToken())
 
 **Безопасность:** токен с правом записи в репо нельзя класть в `portal.json` — только в браузер учителя/общих планшетов. Для продакшена лучше отдельный backend.
 
+## Сброс сдач всему классу (повторная сдача)
+
+Увеличьте в `portal.json` число **`submissions_reset_generation`** (например `1` → `2`) и обнулите **`submissions.json`**. После deploy каждый браузер при первом заходе удалит локальные сдачи; на GitHub останется пустой JSON — все могут сдать заново.
+
 ## Сброс сдач при проверке сайта (не для учеников)
 
 Ответы учеников на GitHub Pages лежат в браузере: ключ `portal_site_submissions_v1`. В интерфейсе повторная сдача отключена. Для своих тестов: откройте сайт с параметром `?portal_dev=clear` (один раз), либо в консоли `localStorage.removeItem('portal_site_submissions_v1')` и обновите страницу.

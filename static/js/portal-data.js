@@ -2,6 +2,8 @@
 
 const PROBLEM_THRESHOLD = 40;
 const SUBMISSIONS_KEY = "portal_site_submissions_v1";
+const SUBMISSIONS_RESET_ACK_KEY = "portal_submissions_reset_ack_v1";
+const SUBMISSIONS_SYNC_FP_KEY = "portal_submissions_sync_fingerprint";
 const TEACHER_REPORTS_KEY = "portal_site_teacher_reports_v1";
 const EXAM_DRAFTS_KEY = "portal_exam_drafts_v2";
 const EXAM_SCHEDULE_KEY = "portal_exam_schedule_v1";
@@ -25,13 +27,14 @@ function migrateLocalExamDraftsKey() {
 export async function loadPortalBundle() {
   migrateLocalExamDraftsKey();
   if (!bundlePromise) {
-    const url = `${dataBasePath()}/portal.json?v=93`;
+    const url = `${dataBasePath()}/portal.json?v=94`;
     bundlePromise = fetch(url, { cache: "no-cache" })
       .then((res) => {
         if (!res.ok) throw new Error("portal_data_load_failed");
         return res.json();
       })
       .then((bundle) => {
+        enforceSubmissionsReset(bundle);
         enforceClearedStudents(bundle);
         return bundle;
       });
@@ -53,7 +56,7 @@ async function loadMergedSubmissions() {
   const local = loadSubmissions();
   let remote = {};
   try {
-    const url = `${dataBasePath()}/submissions.json?v=1`;
+    const url = `${dataBasePath()}/submissions.json?v=2`;
     const res = await fetch(url, { cache: "no-cache" });
     if (res.ok) {
       const body = await res.json();
@@ -71,6 +74,29 @@ async function loadMergedSubmissions() {
 
 function saveSubmissions(map) {
   localStorage.setItem(SUBMISSIONS_KEY, JSON.stringify(map));
+}
+
+/**
+ * Одноразовый сброс всех сдач в браузере при увеличении portal.json → submissions_reset_generation.
+ * Позволяет всему классу сдать тесты заново без ручной очистки localStorage.
+ */
+function enforceSubmissionsReset(bundle) {
+  const generation = Number(bundle?.submissions_reset_generation) || 0;
+  if (!generation) return;
+  let ack = 0;
+  try {
+    ack = Number(localStorage.getItem(SUBMISSIONS_RESET_ACK_KEY)) || 0;
+  } catch {
+    /* ignore */
+  }
+  if (ack >= generation) return;
+  try {
+    localStorage.removeItem(SUBMISSIONS_KEY);
+    localStorage.removeItem(SUBMISSIONS_SYNC_FP_KEY);
+    localStorage.setItem(SUBMISSIONS_RESET_ACK_KEY, String(generation));
+  } catch {
+    /* ignore */
+  }
 }
 
 /** Удаляет сдачи учеников из localStorage (список в portal.json → cleared_student_ids). */

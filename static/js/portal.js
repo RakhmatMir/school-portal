@@ -1,4 +1,4 @@
-import { dataApi, demoAuthApi } from "./portal-data.js?v=93";
+import { dataApi, demoAuthApi } from "./portal-data.js?v=94";
 import {
   autoSyncSubmissionsOnLoad,
   copyLocalSubmissionsToClipboard,
