@@ -58,15 +58,13 @@ export function invalidateRemoteSubmissionsCache() {
   forceRemoteSubmissionsFetch = true;
 }
 
-/** localStorage + data/submissions.json (GitHub); при совпадении ключей побеждает файл с GitHub. */
-async function loadMergedSubmissions() {
-  const local = loadSubmissions();
+async function fetchRemoteSubmissionsMap() {
   let remote = {};
   const bust = forceRemoteSubmissionsFetch;
   forceRemoteSubmissionsFetch = false;
   try {
     const ts = bust ? `&_=${Date.now()}` : "";
-    const url = `${dataBasePath()}/submissions.json?v=5${ts}`;
+    const url = `${dataBasePath()}/submissions.json?v=6${ts}`;
     const res = await fetch(url, { cache: "no-store" });
     if (res.ok) {
       const body = await res.json();
@@ -79,7 +77,14 @@ async function loadMergedSubmissions() {
   } catch {
     /* offline or missing file */
   }
-  return { ...local, ...remote };
+  return remote;
+}
+
+/** Ученик: local + GitHub. Админ: только GitHub JSON (любой компьютер). */
+async function loadSubmissionsForApi(user) {
+  const remote = await fetchRemoteSubmissionsMap();
+  if (user?.role === "admin") return remote;
+  return { ...loadSubmissions(), ...remote };
 }
 
 function saveSubmissions(map) {

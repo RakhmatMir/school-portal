@@ -2133,8 +2133,14 @@ async function renderSubmissionsRetentionBanner() {
   </section>`;
 }
 
+function renderAdminGithubSyncHint() {
+  if (!useSiteData()) return "";
+  return `<p class="muted admin-github-sync-hint">Сдачи учеников с любых устройств хранятся в GitHub (JSON) и обновляются здесь автоматически.</p>`;
+}
+
 async function renderAdminHome(main, session) {
   const retentionBanner = await renderSubmissionsRetentionBanner();
+  const syncHint = renderAdminGithubSyncHint();
   const classes = await api("/api/portal/classes");
   const staffTests = isStaffRole() ? await loadStaffTestsList() : [];
   const rows = classes.length
