@@ -1,4 +1,9 @@
-import { dataApi, demoAuthApi } from "./portal-data.js?v=95";
+import {
+  dataApi,
+  demoAuthApi,
+  invalidateRemoteSubmissionsCache,
+  loadPortalBundle,
+} from "./portal-data.js?v=96";
 import {
   autoSyncSubmissionsOnLoad,
   copyLocalSubmissionsToClipboard,
@@ -9,7 +14,37 @@ import {
   readLocalSubmissionMap,
   saveGitHubSyncTokenFromUrl,
   setGitHubSyncToken,
-} from "./portal-submissions-sync.js?v=2";
+} from "./portal-submissions-sync.js?v=3";
+
+const ADMIN_SUBMISSION_POLL_MS = 4000;
+let adminSubmissionPollTimer = null;
+
+function stopAdminSubmissionPoll() {
+  if (adminSubmissionPollTimer) {
+    clearInterval(adminSubmissionPollTimer);
+    adminSubmissionPollTimer = null;
+  }
+}
+
+function startAdminSubmissionPoll() {
+  stopAdminSubmissionPoll();
+  if (!useSiteData()) return;
+  adminSubmissionPollTimer = setInterval(async () => {
+    if (portalState.session?.user?.role !== "admin") {
+      stopAdminSubmissionPoll();
+      return;
+    }
+    invalidateRemoteSubmissionsCache();
+    portalState.adminPollSilent = true;
+    try {
+      await renderAdminFlow();
+    } catch (err) {
+      console.warn("[portal] admin submission poll", err);
+    } finally {
+      portalState.adminPollSilent = false;
+    }
+  }, ADMIN_SUBMISSION_POLL_MS);
+}
 
 const $ = (id) => document.getElementById(id);
 
@@ -1512,9 +1547,11 @@ async function submitStudentExam(examId, questionCount) {
   setTestTakingActive(false);
   portalState.highlightResultExamId = examId;
   if (useSiteData()) {
-    autoSyncSubmissionsOnLoad({ force: true }).catch((err) => {
-      console.warn("[portal] GitHub sync after submit:", err?.message || err);
-    });
+    loadPortalBundle()
+      .then((bundle) => autoSyncSubmissionsOnLoad({ force: true, bundle }))
+      .catch((err) => {
+        console.warn("[portal] GitHub sync after submit:", err?.message || err);
+      });
   }
   return result;
 }
@@ -2879,7 +2916,9 @@ async function renderStudentExamPreview(main) {
 
 async function renderAdminFlow() {
   const main = $("app-main");
-  main.innerHTML = `<p class="muted">Загрузка…</p>`;
+  if (!portalState.adminPollSilent) {
+    main.innerHTML = `<p class="muted">Загрузка…</p>`;
+  }
   if (portalState.adminView !== "exam" || portalState.examId == null) {
     setTestTakingActive(false);
   }
@@ -3061,8 +3100,10 @@ async function renderDashboard(session) {
   showApp();
 
   if (role === "admin") {
+    startAdminSubmissionPoll();
     await renderAdminFlow();
   } else if (role === "student") {
+    stopAdminSubmissionPoll();
     try {
       await renderStudentFlow();
     } catch (err) {
@@ -3149,6 +3190,7 @@ $("btn-logout").addEventListener("click", async () => {
   } catch {
     /* ignore */
   }
+  stopAdminSubmissionPoll();
   portalState.session = null;
   showAuth();
   $("input-password").value = "";
@@ -3194,7 +3236,9 @@ if (useSiteData()) {
 }
 await loadLanding();
 if (useSiteData()) {
-  autoSyncSubmissionsOnLoad().then((r) => {
+  loadPortalBundle()
+    .then((bundle) => autoSyncSubmissionsOnLoad({ bundle }))
+    .then((r) => {
     if (r?.synced) console.info("[portal] Сдачи отправлены в GitHub", r);
     else if (r?.skipped === "no_token") {
       /* токен не настроен — автосинх выключен */

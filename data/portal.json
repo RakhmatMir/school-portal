@@ -13,8 +13,12 @@
       "bundle_published": true
     }
   },
-  "submissions_reset_generation": 2,
-  "cleared_student_ids": [],
+  "submissions_reset_generation": 3,
+  "submissions_upload": {
+    "enabled": false,
+    "github_token": "REPLACE_WITH_GITHUB_TOKEN"
+  },
+  "cleared_student_ids": [419],
   "subjects": [
     {
       "code": "math",
@@ -399,8 +403,8 @@
         "score_percent": null
       },
       {
-        "id": 419,
-        "full_name": "Холжораев Мухаммадсудайс",
+        "id": 402,
+        "full_name": "Рафиков Ризкхожа",
         "status": "not_started",
         "score_percent": null
       }
@@ -552,10 +556,10 @@
       "class_name": "6Б"
     },
     {
-      "id": 419,
-      "login": "6b19",
-      "password": "6b19-419",
-      "full_name": "Холжораев Мухаммадсудайс",
+      "id": 402,
+      "login": "6b02",
+      "password": "6b02-402",
+      "full_name": "Рафиков Ризкхожа",
       "role": "student",
       "class_name": "6Б"
     }

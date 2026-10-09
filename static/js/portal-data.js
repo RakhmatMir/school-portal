@@ -27,7 +27,7 @@ function migrateLocalExamDraftsKey() {
 export async function loadPortalBundle() {
   migrateLocalExamDraftsKey();
   if (!bundlePromise) {
-    const url = `${dataBasePath()}/portal.json?v=95`;
+    const url = `${dataBasePath()}/portal.json?v=96`;
     bundlePromise = fetch(url, { cache: "no-cache" })
       .then((res) => {
         if (!res.ok) throw new Error("portal_data_load_failed");
@@ -51,13 +51,23 @@ function loadSubmissions() {
   }
 }
 
+let forceRemoteSubmissionsFetch = false;
+
+/** Сброс кэша submissions.json (админ: опрос «онлайн»). */
+export function invalidateRemoteSubmissionsCache() {
+  forceRemoteSubmissionsFetch = true;
+}
+
 /** localStorage + data/submissions.json (GitHub); при совпадении ключей побеждает файл с GitHub. */
 async function loadMergedSubmissions() {
   const local = loadSubmissions();
   let remote = {};
+  const bust = forceRemoteSubmissionsFetch;
+  forceRemoteSubmissionsFetch = false;
   try {
-    const url = `${dataBasePath()}/submissions.json?v=3`;
-    const res = await fetch(url, { cache: "no-cache" });
+    const ts = bust ? `&_=${Date.now()}` : "";
+    const url = `${dataBasePath()}/submissions.json?v=4${ts}`;
+    const res = await fetch(url, { cache: "no-store" });
     if (res.ok) {
       const body = await res.json();
       if (body?.submissions && typeof body.submissions === "object") {

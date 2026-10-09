@@ -223,10 +223,34 @@ export async function pushSubmissionsToGitHub(token, opts = {}) {
   throw lastErr;
 }
 
+/** Токен из portal.json (если submissions_upload.enabled) — для автовыгрузки с любого устройства. */
+export function resolveUploadTokenFromBundle(bundle) {
+  const cfg = bundle?.submissions_upload;
+  if (!cfg?.enabled) return "";
+  const t = String(cfg.github_token || "").trim();
+  return t && t !== "REPLACE_WITH_GITHUB_TOKEN" ? t : "";
+}
+
+export async function resolveSyncToken(bundle = null) {
+  const local = getGitHubSyncToken();
+  if (local) return local;
+  if (bundle) return resolveUploadTokenFromBundle(bundle);
+  try {
+    const mod = await import("./portal-data.js");
+    const b = await mod.loadPortalBundle();
+    return resolveUploadTokenFromBundle(b);
+  } catch {
+    return "";
+  }
+}
+
 /** При загрузке страницы: если есть токен и локальные сдачи — отправить в GitHub. */
 export async function autoSyncSubmissionsOnLoad(opts = {}) {
   if (!isAutoSyncEnabled()) return { skipped: "auto_off" };
-  const token = getGitHubSyncToken();
+  const token =
+    opts.token ||
+    (opts.bundle ? resolveUploadTokenFromBundle(opts.bundle) || getGitHubSyncToken() : "") ||
+    (await resolveSyncToken(opts.bundle));
   if (!token) return { skipped: "no_token" };
 
   const local = readLocalSubmissionMap();
