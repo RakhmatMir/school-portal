@@ -1,5 +1,4 @@
-Класс 6Б — https://rakhmatmir.github.io/school-portal/?v=106
-Админ — https://rakhmatmir.github.io/school-portal/?v=106 (логин admin / admin123)
+Портал (админ и ученики) — https://rakhmatmir.github.io/school-portal/?v=106
 У каждого ученика свой логин и пароль.
 
 №  | Логин | Пароль      | ФИО
