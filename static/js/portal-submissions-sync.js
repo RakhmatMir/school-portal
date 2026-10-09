@@ -144,17 +144,15 @@ export async function fetchGitHubSubmissionFile(cfg = PORTAL_GITHUB_SUBMISSIONS)
 }
 
 async function buildSubmissionFilePayload(bundle, merged, remoteBody) {
-  const retentionHours = Math.max(1, Number(bundle?.submissions_retention_hours) || 24);
   const meta =
     remoteBody?.meta && typeof remoteBody.meta === "object" ? { ...remoteBody.meta } : {};
 
-  if (!meta.purge_after && bundle) {
+  if (!meta.all_submitted_at && bundle) {
     const { classBundleFullySubmitted } = await import("./portal-data.js");
     const className = bundle.classes?.[0]?.class_name || "6Б";
     if (classBundleFullySubmitted(bundle, className, merged)) {
       const now = new Date();
       meta.all_submitted_at = now.toISOString();
-      meta.purge_after = new Date(now.getTime() + retentionHours * 3600000).toISOString();
       meta.class_name = className;
       meta.student_count = (bundle.rosters?.[className] || []).length;
     }

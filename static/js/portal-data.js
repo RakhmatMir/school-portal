@@ -27,7 +27,7 @@ function migrateLocalExamDraftsKey() {
 export async function loadPortalBundle() {
   migrateLocalExamDraftsKey();
   if (!bundlePromise) {
-    const url = `${dataBasePath()}/portal.json?v=98`;
+    const url = `${dataBasePath()}/portal.json?v=99`;
     bundlePromise = fetch(url, { cache: "no-cache" })
       .then((res) => {
         if (!res.ok) throw new Error("portal_data_load_failed");
@@ -215,17 +215,43 @@ function classExamBundleList(bundle, className) {
     .sort((a, b) => (order[a.subject_code] ?? 99) - (order[b.subject_code] ?? 99));
 }
 
+/** Ученик сдал все тесты набора класса. */
+export function studentBundleFullySubmitted(bundle, className, studentId, submissions) {
+  const exams = classExamBundleList(bundle, className);
+  if (!exams.length) return false;
+  for (const ex of exams) {
+    if (!getSubmission(submissions, ex.id, studentId)) return false;
+  }
+  return true;
+}
+
 /** Все ученики roster сдали все тесты набора класса (например 18 × 3). */
 export function classBundleFullySubmitted(bundle, className, submissions) {
   const roster = bundle?.rosters?.[className] || [];
-  const exams = classExamBundleList(bundle, className);
-  if (!roster.length || !exams.length) return false;
+  if (!roster.length) return false;
   for (const row of roster) {
-    for (const ex of exams) {
-      if (!getSubmission(submissions, ex.id, row.id)) return false;
-    }
+    if (!studentBundleFullySubmitted(bundle, className, row.id, submissions)) return false;
   }
   return true;
+}
+
+function countBundleCompleteStudents(bundle, className, submissions) {
+  const roster = classRoster(bundle, className);
+  let n = 0;
+  for (const row of roster) {
+    if (studentBundleFullySubmitted(bundle, className, row.id, submissions)) n++;
+  }
+  return n;
+}
+
+function mapAdminRosterStudents(bundle, className, examId, submissions, teacherAnalyticsReleased) {
+  const base = rosterForClass(bundle, className, examId, submissions, {
+    releaseResults: teacherAnalyticsReleased,
+  });
+  return base.map((row) => ({
+    ...row,
+    bundle_complete: studentBundleFullySubmitted(bundle, className, row.id, submissions),
+  }));
 }
 
 function getClassExamSchedule(className, bundle) {
@@ -714,20 +740,24 @@ export async function dataApi(path, options = {}) {
       const examId = Number(key.split(":")[0]);
       const ex = examById(bundle, examId);
       if (!ex) continue;
-      if (!examResultsReleased(bundle, examId, submissions)) continue;
       tests.push({
         exam_id: examId,
         title: ex.title,
         subject_title: ex.subject_title,
+        subject_code: ex.subject_code,
         control_date: ex.control_date,
         score_percent: sub.score_percent,
         correct_count: sub.correct_count,
         question_total: sub.question_total,
         duration_label: sub.duration_label || "10:42",
-        score_line: `${sub.score_percent}%`,
+        score_line: `${sub.correct_count ?? "—"}/${sub.question_total ?? "—"} · ${sub.score_percent}%`,
       });
     }
-    return { tests };
+    tests.sort((a, b) => a.exam_id - b.exam_id);
+    const overall_score_percent = tests.length
+      ? Math.round(tests.reduce((acc, t) => acc + (Number(t.score_percent) || 0), 0) / tests.length)
+      : null;
+    return { tests, overall_score_percent };
   }
 
   let m = path.match(/^\/api\/portal\/class\/([^/]+)\/subjects$/);
@@ -770,10 +800,14 @@ export async function dataApi(path, options = {}) {
     if (!ex) throw new Error("exam_not_found");
     const draft = getExamDraft(examId);
     const progress = examClassProgress(bundle, examId, submissions);
-    const resultsReleased = examResultsReleased(bundle, examId, submissions);
-    const students = rosterForClass(bundle, ex.class_name, examId, submissions, {
-      releaseResults: resultsReleased,
-    });
+    const teacherAnalyticsReleased = classBundleFullySubmitted(bundle, ex.class_name, submissions);
+    const students = mapAdminRosterStudents(
+      bundle,
+      ex.class_name,
+      examId,
+      submissions,
+      teacherAnalyticsReleased
+    );
     const submitted = students.filter((s) => s.status === "submitted");
     const emptyStats = ex.questions.map(() => ({
       submitted_total: 0,
@@ -782,9 +816,10 @@ export async function dataApi(path, options = {}) {
       avg_time_label: null,
       question_exit_label: null,
     }));
-    const analytics = resultsReleased
+    const analytics = teacherAnalyticsReleased
       ? buildAnalytics(bundle, examId, ex.questions, students, submissions)
       : { stats: emptyStats, problem: [] };
+    const bundleCompleteCount = countBundleCompleteStudents(bundle, ex.class_name, submissions);
     return {
       exam: stripQuestions(ex),
       questions: ex.questions,
@@ -794,7 +829,9 @@ export async function dataApi(path, options = {}) {
       submitted_count: progress.submittedCount,
       class_total: progress.classTotal || students.length || 24,
       all_submitted: progress.allSubmitted,
-      results_released: resultsReleased,
+      teacher_analytics_released: teacherAnalyticsReleased,
+      bundle_complete_count: bundleCompleteCount,
+      results_released: teacherAnalyticsReleased,
       teacher_report_sent: teacherReports.has(examId),
       exam_editor: {
         published: isExamPublishedToStudents(bundle, examId),
@@ -958,9 +995,8 @@ export async function dataApi(path, options = {}) {
     }
     const sub = getSubmission(submissions, examId, user.id);
     const progress = examClassProgress(bundle, examId, submissions);
-    const resultsReleased = examResultsReleased(bundle, examId, submissions);
     const turnedIn = sub !== null || ex.catalog_key === "done";
-    const showResults = resultsReleased && turnedIn;
+    const showResults = turnedIn;
     const score = showResults
       ? sub
         ? sub.score_percent
@@ -974,7 +1010,7 @@ export async function dataApi(path, options = {}) {
       show_answers: false,
       submitted: turnedIn,
       results_released: showResults,
-      awaiting_release: turnedIn && !showResults,
+      awaiting_release: false,
       submitted_count: progress.submittedCount,
       class_total: progress.classTotal,
       score_percent: score,
@@ -1033,17 +1069,16 @@ export async function dataApi(path, options = {}) {
     };
     saveSubmissions(map);
     const progress = examClassProgress(bundle, examId, map);
-    const resultsReleased = examResultsReleased(bundle, examId, map);
     return {
       submitted: true,
-      results_released: resultsReleased,
-      awaiting_release: !resultsReleased,
+      results_released: true,
+      awaiting_release: false,
       submitted_count: progress.submittedCount,
       class_total: progress.classTotal,
-      score_percent: resultsReleased ? score : null,
-      correct_count: resultsReleased ? correct : null,
+      score_percent: score,
+      correct_count: correct,
       question_total: total,
-      duration_label: resultsReleased ? durationLabel : null,
+      duration_label: durationLabel,
     };
   }
 
@@ -1086,7 +1121,7 @@ export async function dataApi(path, options = {}) {
     if (!user || user.role !== "admin") throw new Error("forbidden");
     const examId = Number(m[1]);
     const admin = await dataApi(`/api/portal/exams/${examId}/admin`, { method: "GET" });
-    if (!admin.all_submitted) throw new Error("not_all_submitted");
+    if (!admin.teacher_analytics_released) throw new Error("not_all_submitted");
     const reports = loadTeacherReports();
     reports.add(examId);
     saveTeacherReports(reports);

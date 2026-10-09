@@ -3,7 +3,7 @@ import {
   demoAuthApi,
   invalidateRemoteSubmissionsCache,
   loadPortalBundle,
-} from "./portal-data.js?v=97";
+} from "./portal-data.js?v=99";
 import {
   autoSyncSubmissionsOnLoad,
   copyLocalSubmissionsToClipboard,
@@ -15,7 +15,7 @@ import {
   saveGitHubSyncTokenFromUrl,
   setGitHubSyncToken,
   fetchSiteSubmissionsDocument,
-} from "./portal-submissions-sync.js?v=4";
+} from "./portal-submissions-sync.js?v=5";
 
 const ADMIN_SUBMISSION_POLL_MS = 4000;
 let adminSubmissionPollTimer = null;
@@ -598,14 +598,20 @@ function syncThemeIcons() {
 
 async function loadStudentCompletedTests(fromSubjectsPayload) {
   if (Array.isArray(fromSubjectsPayload?.completed_tests)) {
-    return fromSubjectsPayload.completed_tests;
+    return {
+      tests: fromSubjectsPayload.completed_tests,
+      overall_score_percent: fromSubjectsPayload.overall_score_percent ?? null,
+    };
   }
   try {
     const data = await api("/api/portal/my/completed-tests");
-    return data.tests || [];
+    return {
+      tests: data.tests || [],
+      overall_score_percent: data.overall_score_percent ?? null,
+    };
   } catch (err) {
     console.warn("portal: completed tests unavailable", err);
-    return [];
+    return { tests: [], overall_score_percent: null };
   }
 }
 
@@ -956,8 +962,23 @@ function renderTableBodyRows(columns, rows) {
     .join("");
 }
 
-function renderStudentResultsTable(students) {
-  const columns = STUDENT_TABLE_COLUMNS;
+function renderTeacherStudentTable(students, { compact = false } = {}) {
+  const columns = compact
+    ? [
+        {
+          label: "Ученик",
+          render: (st) => escapeHtml(st.full_name),
+        },
+        {
+          label: "Все 3 теста",
+          cellClass: "num",
+          render: (st) =>
+            st.bundle_complete
+              ? `<span class="tag tag-ok" title="Сдал все тесты">✓</span>`
+              : `<span class="muted">—</span>`,
+        },
+      ]
+    : STUDENT_TABLE_COLUMNS;
   const head = columns.map((c) => `<th scope="col">${escapeHtml(c.label)}</th>`).join("");
   const preview = students.slice(0, STUDENTS_TABLE_PREVIEW);
   const hidden = students.slice(STUDENTS_TABLE_PREVIEW);
@@ -970,7 +991,7 @@ function renderStudentResultsTable(students) {
       : "";
   return `<div class="student-table-wrap">
     <div class="student-table-scroll">
-      <table class="data-table table-students">
+      <table class="data-table table-students${compact ? " table-students-compact" : ""}">
         <thead><tr>${head}</tr></thead>
         <tbody>${renderTableBodyRows(columns, preview)}</tbody>
         ${
@@ -982,6 +1003,10 @@ function renderStudentResultsTable(students) {
     </div>
     ${toggleBtn}
   </div>`;
+}
+
+function renderStudentResultsTable(students) {
+  return renderTeacherStudentTable(students, { compact: false });
 }
 
 function bindStudentTableExpand(root) {
@@ -1592,9 +1617,13 @@ function renderStudentResultCard(t, { orderIndex, total, highlight }) {
     </article>`;
 }
 
-function renderStudentCompletedTestsBlock(tests, highlightExamId) {
+function renderStudentCompletedTestsBlock(tests, highlightExamId, overallScorePercent) {
   if (!tests.length) return "";
   const heading = tests.length === 1 ? "Результат теста" : "Пройденные тесты";
+  const overallLine =
+    overallScorePercent != null && tests.length > 1
+      ? `<p class="lead muted">Общий средний балл: <strong>${overallScorePercent}%</strong></p>`
+      : "";
   const lead =
     tests.length === 1
       ? "Нажмите на предмет, чтобы открыть результат."
@@ -1611,6 +1640,7 @@ function renderStudentCompletedTestsBlock(tests, highlightExamId) {
   return `
     <div class="panel panel-student-results" id="student-results">
       <h3>${heading}</h3>
+      ${overallLine}
       <p class="lead muted">${lead}</p>
       <div class="student-results-stack">${cards}</div>
     </div>`;
@@ -1642,10 +1672,9 @@ function isStudentExamTurnedIn(preview) {
 
 function isStudentExamResultsVisible(preview) {
   if (!preview) return false;
+  if (isStudentExamTurnedIn(preview)) return true;
   if (preview.results_released === true) return true;
-  if (preview.awaiting_release) return false;
   if (Array.isArray(preview.feedback) && preview.feedback.length > 0) return true;
-  if (preview.exam?.catalog_key === "done" && isStudentExamTurnedIn(preview)) return true;
   return false;
 }
 
@@ -1662,10 +1691,10 @@ function scrollToHighlightedResult(main) {
 }
 
 function renderTeacherReportPanel(data, examId) {
-  if (!data.all_submitted) {
+  if (!data.teacher_analytics_released) {
     return `<div class="panel panel-muted-inline panel-class-progress">
       <h3>Прогресс класса</h3>
-      <p class="lead muted">Сдано <strong>${data.submitted_count ?? 0}</strong> из <strong>${data.class_total ?? 0}</strong>. Оценки и аналитика откроются у всех сразу, когда сдадут последние ученики.</p>
+      <p class="lead muted">Сдали <strong>все 3 теста</strong>: <strong>${data.bundle_complete_count ?? 0}</strong> из <strong>${data.class_total ?? 0}</strong>. Полная выгрузка и отчёт — когда будут все <strong>${data.class_total ?? 0}</strong>.</p>
     </div>`;
   }
   if (data.teacher_report_sent) {
@@ -2096,11 +2125,11 @@ async function renderSubmissionsRetentionBanner() {
   if (!useSiteData() || !isStaffRole()) return "";
   const doc = await fetchSiteSubmissionsDocument();
   const meta = doc?.meta;
-  if (!meta?.all_submitted_at || !meta?.purge_after) return "";
+  if (!meta?.all_submitted_at) return "";
   const n = meta.student_count ?? "—";
   return `<section class="panel panel-muted-inline panel-submissions-retention">
-    <p class="lead"><strong>Все ${escapeHtml(String(n))} учеников сдали все тесты.</strong> Данные в GitHub хранятся до <strong>${escapeHtml(formatDateTimeRu(meta.purge_after))}</strong>, затем удаляются автоматически (≈24 ч на проверку).</p>
-    <p class="muted">Сдано: ${escapeHtml(formatDateTimeRu(meta.all_submitted_at))}</p>
+    <p class="lead"><strong>Все ${escapeHtml(String(n))} учеников сдали все 3 теста.</strong> Полная статистика открыта — данные сохраняются для проверки.</p>
+    <p class="muted">Зафиксировано: ${escapeHtml(formatDateTimeRu(meta.all_submitted_at))}</p>
   </section>`;
 }
 
@@ -2506,7 +2535,7 @@ function renderStudentExamBundlePanel(bundle) {
   if (bundle.all_submitted) {
     return `<section class="panel panel-student-bundle">
       <h3>Все тесты сданы</h3>
-      <p class="muted">Вы сдали все ${bundle.test_count} теста. Повторно сдать нельзя. Результаты появятся, когда сдадут все в классе.</p>
+      <p class="muted">Вы сдали все ${bundle.test_count} теста. Повторно сдать нельзя. Ваши баллы — в блоке «Пройденные тесты» ниже.</p>
       <ul class="list-plain bundle-steps student-bundle-tests">${testRows}</ul>
     </section>`;
   }
@@ -2695,8 +2724,9 @@ async function renderAdminExamDetail(main) {
       ])}
     </section>`;
 
+  const teacherReleased = Boolean(data.teacher_analytics_released);
   const studentsTable = data.students.length
-    ? renderStudentResultsTable(data.students)
+    ? renderTeacherStudentTable(data.students, { compact: !teacherReleased })
     : `<p class="muted">В классе пока нет учеников — добавим позже</p>`;
 
   const problemPanelLead = [
@@ -2763,9 +2793,11 @@ async function renderAdminExamDetail(main) {
       ${renderMetricColumns(analyticsCols)}
     </section>`;
 
-  const resultsReleased = data.all_submitted;
+  const resultsReleased = teacherReleased;
+  const bundleDone = data.bundle_complete_count ?? 0;
+  const classTotal = data.class_total ?? 0;
   const analyticsHoldPanel = `<section class="panel panel-muted-inline panel-block panel-results-locked">
-      <p class="muted">Детальная аналитика (время, сложные вопросы, проценты) появится здесь, когда сдадут все <strong>${data.class_total ?? 0}</strong> учеников. Сейчас сдано <strong>${data.submitted_count ?? 0}</strong>.</p>
+      <p class="muted">Полная статистика откроется, когда <strong>все ${classTotal}</strong> учеников сдадут <strong>все 3 теста</strong>. Сейчас полностью сдали: <strong>${bundleDone}</strong> из <strong>${classTotal}</strong>. Ниже — только галочки «сдал все 3».</p>
     </section>`;
   const examAnalyticsStack = resultsReleased
     ? `${summaryPanel}${timingPanel}${problemPanel}${studentsPanel}${questionsPanel}`
@@ -2989,7 +3021,7 @@ async function renderStudentFlow() {
   if (portalState.adminView === "home") {
     const highlightId = portalState.highlightResultExamId;
     const data = await api("/api/portal/my/subjects");
-    const completedTests = await loadStudentCompletedTests(data);
+    const { tests: completedTests, overall_score_percent: overallScore } = await loadStudentCompletedTests(data);
     let bundle = null;
     try {
       bundle = await api("/api/portal/my/exam-bundle");
@@ -2997,7 +3029,7 @@ async function renderStudentFlow() {
       console.warn("portal: exam bundle", err);
     }
     const bundleBlock = renderStudentExamBundlePanel(bundle);
-    const resultsBlock = renderStudentCompletedTestsBlock(completedTests, highlightId);
+    const resultsBlock = renderStudentCompletedTestsBlock(completedTests, highlightId, overallScore);
     main.innerHTML = `
       <div class="panel">
         <h3>${escapeHtml(u.full_name)}</h3>
