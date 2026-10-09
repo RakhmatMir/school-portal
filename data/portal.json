@@ -13,13 +13,13 @@
       "bundle_published": true
     }
   },
-  "submissions_reset_generation": 3,
+  "submissions_reset_generation": 4,
   "submissions_retention_hours": 24,
   "submissions_upload": {
     "enabled": true,
     "github_token": "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"
   },
-  "cleared_student_ids": [419],
+  "cleared_student_ids": [],
   "subjects": [
     {
       "code": "math",
