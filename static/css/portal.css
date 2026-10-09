@@ -2042,28 +2042,3 @@ li.student-row .student-row-meta {
 .data-table td.col-errors-stack {
   vertical-align: middle;
 }
-
-.admin-json-loader {
-  font-size: 0.75rem;
-  padding: 0.25rem 0.5rem;
-  animation: admin-json-pulse 1s ease-in-out infinite;
-}
-
-@keyframes admin-json-pulse {
-  50% {
-    opacity: 0.45;
-  }
-}
-
-.admin-sync-notice {
-  position: fixed;
-  left: 50%;
-  bottom: 1.25rem;
-  transform: translateX(-50%);
-  z-index: 900;
-  max-width: min(92vw, 28rem);
-  padding: 0.75rem 1rem;
-  box-shadow: var(--shadow);
-  border: 1px solid var(--border);
-  font-size: 0.95rem;
-}

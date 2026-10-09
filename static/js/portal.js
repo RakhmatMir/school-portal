@@ -3,8 +3,7 @@ import {
   demoAuthApi,
   invalidateRemoteSubmissionsCache,
   loadPortalBundle,
-  studentBundleFullySubmitted,
-} from "./portal-data.js?v=101";
+} from "./portal-data.js?v=102";
 import {
   autoSyncSubmissionsOnLoad,
   copyLocalSubmissionsToClipboard,
